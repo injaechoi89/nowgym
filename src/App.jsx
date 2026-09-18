@@ -17,7 +17,7 @@ const MENU = [
   {id:'task', label:'과업 인증', icon:'ti-checklist'},
   {id:'pt', label:'PT 시간표', icon:'ti-barbell'},
   {id:'diary', label:'PT 운동 일지', icon:'ti-notebook'},
-  {id:'contract', label:'PT 가입서', icon:'ti-file-text'},
+  {id:'contract', label:'PT회원 관리', icon:'ti-file-text'},
   {id:'schedule', label:'스케줄', icon:'ti-calendar'},
   {id:'salary', label:'급여 정산', icon:'ti-coin'},
   {id:'dashboard', label:'매출 대시보드', icon:'ti-chart-bar', ownerOnly:true},
@@ -25,7 +25,7 @@ const MENU = [
 ]
 
 const PAGES = {home:Home, task:Task, pt:PT, schedule:Schedule, salary:Salary, dashboard:Dashboard, diary:PTDiary, contract:PTContract, settings:Settings}
-const PAGE_TITLES = {home:'홈', task:'과업 인증', pt:'PT 시간표', schedule:'스케줄', salary:'급여 정산', dashboard:'매출 대시보드', diary:'PT 운동 일지', contract:'PT 가입서', settings:'설정'}
+const PAGE_TITLES = {home:'홈', task:'과업 인증', pt:'PT 시간표', schedule:'스케줄', salary:'급여 정산', dashboard:'매출 대시보드', diary:'PT 운동 일지', contract:'PT회원 관리', settings:'설정'}
 
 export default function App() {
   const [auth, setAuth] = useLocalStorage('nowgym-auth', null)

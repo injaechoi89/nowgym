@@ -238,7 +238,7 @@ export default function PT({role, myTrainer}) {
               </button>
               {memberPickerOpen&&(
                 <div style={{position:'absolute',top:'100%',left:0,right:0,zIndex:10,background:'var(--surface)',border:'0.5px solid var(--border-strong)',borderRadius:'var(--radius)',marginTop:4,maxHeight:220,overflowY:'auto',boxShadow:'0 4px 12px rgba(0,0,0,0.12)'}}>
-                  {myMembers.length===0&&<div style={{padding:10,fontSize:12,color:'var(--text3)'}}>{effectiveTrainer} 담당 PT 회원이 없어요. 먼저 PT 가입서에서 등록해주세요.</div>}
+                  {myMembers.length===0&&<div style={{padding:10,fontSize:12,color:'var(--text3)'}}>{effectiveTrainer} 담당 PT 회원이 없어요. 먼저 PT회원 관리에서 등록해주세요.</div>}
                   {myMembers.map(m=>(
                     <div key={m.id}
                       onClick={()=>{setForm(f=>({...f,m:m.name,type:m.product.type}));setMemberPickerOpen(false)}}

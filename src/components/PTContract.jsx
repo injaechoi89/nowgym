@@ -101,7 +101,7 @@ export default function PTContract({role, myTrainer}) {
             </div>
             <div style={{display:'flex',gap:8}}>
               <button className="btn btn-outline" style={{flex:1}} onClick={()=>setView('list')}>취소</button>
-              <button className="btn btn-g" style={{flex:2,padding:12,fontSize:14}} onClick={saveForm}>미리보기</button>
+              <button className="btn btn-g" style={{flex:2,padding:12,fontSize:14}} onClick={saveForm}>확인</button>
             </div>
           </div>
         </div>
