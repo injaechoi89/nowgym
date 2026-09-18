@@ -14,7 +14,7 @@ function mondayOf(d){
   const r=new Date(d.getFullYear(),d.getMonth(),d.getDate()); r.setDate(r.getDate()+diff); return r
 }
 
-export default function PT({role, myTrainer}) {
+export default function PT({role, myTrainer, onOpenDiary}) {
   const isOwner = role==='원장님'
   const [trainer, setTrainer] = useState('정우')
   const effectiveTrainer = isOwner ? trainer : myTrainer
@@ -258,6 +258,9 @@ export default function PT({role, myTrainer}) {
                 {(()=>{const fullDisabled=allowedType&&allowedType!=='full';return <button disabled={fullDisabled} style={{flex:1,padding:'8px 4px',border:'1.5px solid '+(form.type==='full'?'#378ADD':'var(--border)'),borderRadius:'var(--radius)',background:form.type==='full'?'#E6F1FB':'transparent',color:fullDisabled?'var(--text3)':form.type==='full'?'#042C53':'var(--text2)',opacity:fullDisabled?0.4:1,cursor:fullDisabled?'not-allowed':'pointer',fontSize:12,fontWeight:500}} onClick={()=>!fullDisabled&&setForm(f=>({...f,type:'full'}))}>일반PT (50분, 2칸)</button>})()}
               </div>
             </div>
+            {modal.existing&&onOpenDiary&&(
+              <button className="btn btn-outline" style={{width:'100%',marginBottom:8}} onClick={()=>{onOpenDiary({trainer:effectiveTrainer,member:form.m,dateKey:modal.dateKey});setModal(null)}}>📝 {form.m}님 운동일지 작성/보기</button>
+            )}
             <div className="modal-btns">
               <button className="btn btn-outline" onClick={()=>setModal(null)}>취소</button>
               {modal.existing&&<button className="btn btn-danger" onClick={removeBooking}>삭제</button>}

@@ -21,7 +21,7 @@ const MENU = [
   {id:'schedule', label:'스케줄', icon:'ti-calendar'},
   {id:'salary', label:'급여 정산', icon:'ti-coin'},
   {id:'dashboard', label:'매출 대시보드', icon:'ti-chart-bar', ownerOnly:true},
-  {id:'settings', label:'설정', icon:'ti-settings', ownerOnly:true},
+  {id:'settings', label:'설정', icon:'ti-settings'},
 ]
 
 const PAGES = {home:Home, task:Task, pt:PT, schedule:Schedule, salary:Salary, dashboard:Dashboard, diary:PTDiary, contract:PTContract, settings:Settings}
@@ -31,6 +31,7 @@ export default function App() {
   const [auth, setAuth] = useLocalStorage('nowgym-auth', null)
   const [page, setPage] = useLocalStorage('nowgym-page', 'home')
   const [mobileNavOpen, setMobileNavOpen] = useState(false)
+  const [diaryJump, setDiaryJump] = useState(null)
 
   if (!auth) {
     return <Login onLogin={(identity) => setAuth({identity})} />
@@ -48,6 +49,11 @@ export default function App() {
     if (item?.ownerOnly && !isOwner) return
     setPage(id)
     setMobileNavOpen(false)
+  }
+
+  const goToDiary = (jump) => {
+    setDiaryJump(jump)
+    setPage('diary')
   }
 
   const logout = () => {
@@ -89,7 +95,7 @@ export default function App() {
           </div>
         </div>
         <div className="content">
-          <Page role={role} myTrainer={myTrainer} />
+          <Page role={role} myTrainer={myTrainer} onOpenDiary={goToDiary} diaryJump={diaryJump} onDiaryJumpHandled={()=>setDiaryJump(null)} />
         </div>
       </div>
     </div>

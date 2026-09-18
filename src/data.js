@@ -24,6 +24,7 @@ export const EX_CATEGORIES = {
   '코어':['플랭크','크런치','레그레이즈','러시안 트위스트'],
   '유산소':['런닝머신','싸이클','로잉머신','줄넘기'],
 };
+export const EXERCISES_INIT = Object.entries(EX_CATEGORIES).flatMap(([cat,names])=>names.map((name,i)=>({id:`${cat}-${i}`,category:cat,name,desc:'',imageUrl:'',videoUrl:'',createdBy:'원장님'})))
 export const PT_HOURS = ['09:00','09:30','10:00','10:30','11:00','11:30','12:00','12:30','13:00','13:30','14:00','14:30','15:00','15:30','16:00','16:30','17:00','17:30','18:00','18:30','19:00'];
 export const PRODUCTS = [
   {id:'h10',type:'half',name:'하프PT 10회',count:10,weeks:5,price:450000},
