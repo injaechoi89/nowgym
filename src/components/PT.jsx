@@ -29,6 +29,8 @@ export default function PT({role, myTrainer}) {
   const [memberPickerOpen, setMemberPickerOpen] = useState(false)
   const pts = (ptData[effectiveTrainer]||[]).filter(p=>typeof p.dateKey==='string')
   const myMembers = members.filter(m=>m.trainer===effectiveTrainer)
+  const selectedMember = myMembers.find(m=>m.name===form.m)
+  const allowedType = selectedMember ? selectedMember.product.type : null
   const lookup = {}
   pts.forEach(p=>{if(!lookup[p.dateKey])lookup[p.dateKey]={};lookup[p.dateKey][p.hour]=p})
   const getMonday = (off) => {
@@ -250,10 +252,10 @@ export default function PT({role, myTrainer}) {
               )}
             </div>
             <div style={{marginBottom:4}}>
-              <label style={{fontSize:12,color:'var(--text3)',display:'block',marginBottom:6}}>PT 종류</label>
+              <label style={{fontSize:12,color:'var(--text3)',display:'block',marginBottom:6}}>PT 종류{allowedType&&<span style={{color:'var(--text3)',fontWeight:400}}> · {selectedMember.name}님 가입 종목만 선택 가능</span>}</label>
               <div style={{display:'flex',gap:8}}>
-                <button style={{flex:1,padding:'8px 4px',border:'1.5px solid '+(form.type==='half'?'#D4537E':'var(--border)'),borderRadius:'var(--radius)',background:form.type==='half'?'#FBEAF0':'transparent',color:form.type==='half'?'#712B13':'var(--text2)',cursor:'pointer',fontSize:12,fontWeight:500}} onClick={()=>setForm(f=>({...f,type:'half'}))}>하프PT (30분)</button>
-                <button style={{flex:1,padding:'8px 4px',border:'1.5px solid '+(form.type==='full'?'#378ADD':'var(--border)'),borderRadius:'var(--radius)',background:form.type==='full'?'#E6F1FB':'transparent',color:form.type==='full'?'#042C53':'var(--text2)',cursor:'pointer',fontSize:12,fontWeight:500}} onClick={()=>setForm(f=>({...f,type:'full'}))}>일반PT (50분, 2칸)</button>
+                {(()=>{const halfDisabled=allowedType&&allowedType!=='half';return <button disabled={halfDisabled} style={{flex:1,padding:'8px 4px',border:'1.5px solid '+(form.type==='half'?'#D4537E':'var(--border)'),borderRadius:'var(--radius)',background:form.type==='half'?'#FBEAF0':'transparent',color:halfDisabled?'var(--text3)':form.type==='half'?'#712B13':'var(--text2)',opacity:halfDisabled?0.4:1,cursor:halfDisabled?'not-allowed':'pointer',fontSize:12,fontWeight:500}} onClick={()=>!halfDisabled&&setForm(f=>({...f,type:'half'}))}>하프PT (30분)</button>})()}
+                {(()=>{const fullDisabled=allowedType&&allowedType!=='full';return <button disabled={fullDisabled} style={{flex:1,padding:'8px 4px',border:'1.5px solid '+(form.type==='full'?'#378ADD':'var(--border)'),borderRadius:'var(--radius)',background:form.type==='full'?'#E6F1FB':'transparent',color:fullDisabled?'var(--text3)':form.type==='full'?'#042C53':'var(--text2)',opacity:fullDisabled?0.4:1,cursor:fullDisabled?'not-allowed':'pointer',fontSize:12,fontWeight:500}} onClick={()=>!fullDisabled&&setForm(f=>({...f,type:'full'}))}>일반PT (50분, 2칸)</button>})()}
               </div>
             </div>
             <div className="modal-btns">
