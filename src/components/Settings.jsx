@@ -90,9 +90,21 @@ export default function Settings({ role, myTrainer }) {
     setProducts(list => prodForm.id ? list.map(x => x.id === prodForm.id ? np : x) : [...list, np])
     setProdForm(null)
   }
+  const deleteProd = (id) => {
+    if (products.length <= 1) { alert('최소 1개의 PT 상품은 남아있어야 해요.'); return }
+    if (!window.confirm('이 PT 상품을 삭제할까요?')) return
+    setProducts(list => list.filter(x => x.id !== id))
+  }
+
+  const [tab, setTab] = useState('exercises')
 
   return (
     <div>
+      <div style={{display:'flex',gap:8,marginBottom:14}}>
+        <button className={`btn ${tab==='exercises'?'btn-g':'btn-outline'}`} onClick={()=>setTab('exercises')}>운동 종목 관리</button>
+        <button className={`btn ${tab==='general'?'btn-g':'btn-outline'}`} onClick={()=>setTab('general')}>일반 설정</button>
+      </div>
+      {tab==='exercises' && (
       <div className="card" style={{marginBottom:14}}>
         <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',gap:10}}>
           <div className="card-title" style={{marginBottom:0}}>운동 종목 관리</div>
@@ -156,7 +168,8 @@ export default function Settings({ role, myTrainer }) {
           </div>
         )}
       </div>
-      {isOwner ? (
+      )}
+      {tab==='general' && (isOwner ? (
         <>
           <div className="card" style={{marginBottom:14}}>
             <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',gap:10}}>
@@ -172,6 +185,7 @@ export default function Settings({ role, myTrainer }) {
                 <span style={{flex:1,fontSize:13}}>{p.name}</span>
                 <span style={{fontSize:12,color:'var(--text3)'}}>{p.count}회 · {p.weeks}주 · {p.price.toLocaleString()}원</span>
                 <button className="btn btn-outline" style={{padding:'5px 10px',fontSize:12}} onClick={()=>openEditProd(p)}>수정</button>
+                <button className="btn btn-danger" style={{padding:'5px 10px',fontSize:12}} onClick={()=>deleteProd(p.id)}>삭제</button>
               </div>
             ))}
             {prodForm && (
@@ -270,7 +284,7 @@ export default function Settings({ role, myTrainer }) {
         <div className="card" style={{textAlign:'center',padding:'2rem 1rem',color:'var(--text3)'}}>
           🔒 나머지 설정은 원장님만 볼 수 있어요.
         </div>
-      )}
+      ))}
     </div>
   )
 }
