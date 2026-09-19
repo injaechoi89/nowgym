@@ -1,7 +1,7 @@
 import {useState} from 'react'
 import {useSyncedState} from '../useSyncedState.js'
-import {TRAINERS,STAFF_BASE,TASK_INSEN,MT,QT,ML,HOL_RECORDS_INIT,getTier,fmt,fmtM,sumHolidayBonus} from '../data.js'
-import {MONTH_SALES,SALES_MONTH_KEYS} from '../salesData.js'
+import {TRAINERS,STAFF_BASE,TASK_INSEN,MT,QT,ML,HOL_RECORDS_INIT,getTier,fmt,fmtM,sumHolidayBonus,PT_INSEN_TRAINERS,ptInsenGroupTotal,ptInsenFor,PT_INSEN_THRESHOLD} from '../data.js'
+import {useLiveSales} from '../useLiveSales.js'
 
 function getQInsen(key,sales){
   const [yearStr,monthStr]=key.split('-'); const year=+yearStr; const m=+monthStr
@@ -20,6 +20,7 @@ export default function Salary({role, myTrainer}) {
   const isOwner = role==='원장님'
   const visibleTrainers = isOwner ? TRAINERS : TRAINERS.filter(t=>t.name===myTrainer)
   const [holRecs] = useSyncedState('nowgym-holiday-work', HOL_RECORDS_INIT)
+  const {monthSales:MONTH_SALES, monthKeys:SALES_MONTH_KEYS} = useLiveSales()
   const [idx, setIdx] = useState(SALES_MONTH_KEYS.length-1)
   const key = SALES_MONTH_KEYS[idx]
   const [year,monthStr] = key.split('-'); const month = +monthStr
@@ -28,6 +29,8 @@ export default function Salary({role, myTrainer}) {
   const mi = getTier(MT,totalManwon)[1]
   const qInfo = getQInsen(key,MONTH_SALES)
   const qEnds=[3,6,9,12]; const hasQ=qEnds.includes(month)&&qInfo.insen>0
+  const ptGroupTotal = ptInsenGroupTotal(d.trainer)
+  const ptGroupEligible = ptGroupTotal >= PT_INSEN_THRESHOLD
   const nextMonth = month<12?ML[month]:'익년 1월'
   return (
     <div>
@@ -41,7 +44,8 @@ export default function Salary({role, myTrainer}) {
           const base=STAFF_BASE[tr.name]||1300000
           const fixed=base+TASK_INSEN
           const ptAmt=d.trainer[tr.name]||0
-          const ptInsen=Math.round(ptAmt*0.12)
+          const ptEligible=PT_INSEN_TRAINERS.includes(tr.name)
+          const ptInsen=ptInsenFor(tr.name,d.trainer)
           const hol=sumHolidayBonus(holRecs, tr.name, +year, month)
           const qI=qInfo.insen
           const total=fixed+mi+ptInsen+hol+qI
@@ -62,8 +66,11 @@ export default function Salary({role, myTrainer}) {
                 </div>
                 <div style={{fontSize:11,fontWeight:500,color:'var(--text3)',padding:'6px 0 3px'}}>PT 인센</div>
                 <div className="rrow">
-                  <span className="rl">PT 인센 ({fmtM(ptAmt)} × 12%)</span>
-                  <span className="rv g">+{fmt(ptInsen)}</span>
+                  <span className="rl">
+                    {ptEligible ? `PT 인센 (${fmtM(ptAmt)} × 10%)` : 'PT 인센 (대상 제외)'}
+                    {ptEligible && <span style={{fontSize:10,color:'var(--text3)',display:'block',marginTop:2}}>정우·준혁·건호 합산 {fmtM(ptGroupTotal)} {ptGroupEligible?'≥':'<'} 800만 {ptGroupEligible?'(지급 대상)':'(미달)'}</span>}
+                  </span>
+                  <span className="rv g">{ptEligible?(ptInsen>0?'+'+fmt(ptInsen):'0원'):'해당없음'}</span>
                 </div>
                 <div style={{fontSize:11,fontWeight:500,color:'var(--text3)',padding:'6px 0 3px'}}>추가 항목</div>
                 <div className="rrow">

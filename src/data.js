@@ -40,6 +40,16 @@ export const PT_MEMBERS_INIT=[
   {id:3,name:'오소연',phone:'010-5678-9012',birth:'951130',gender:'여',trainer:'정우',goal:'다이어트',product:PRODUCTS_INIT[4],regType:'신규',payMethod:'카드',start:new Date(2026,6,7),actual:1100000,staff:'정우'},
 ].map(m=>({...m,contracts:[{id:'c'+m.id,product:m.product,regType:m.regType,payMethod:m.payMethod,start:m.start,actual:m.actual,staff:m.staff}]}))
 export function getTier(tiers,val){let r=tiers[0];for(let t of tiers){if(val>=t[0])r=t;else break;}return r;}
+// PT 인센티브: 정우·준혁·건호 세 명의 PT 매출 합산이 월 800만원 이상이면, 그 달은 세 명 각자 본인 PT 매출의 10%를 인센티브로 지급합니다. (인재는 대상 제외)
+export const PT_INSEN_TRAINERS = ['정우','준혁','건호']
+export const PT_INSEN_THRESHOLD = 8000000
+export const PT_INSEN_RATE = 0.10
+export function ptInsenGroupTotal(trainerSales){ return PT_INSEN_TRAINERS.reduce((a,n)=>a+(trainerSales[n]||0),0) }
+export function ptInsenFor(name,trainerSales){
+  if(!PT_INSEN_TRAINERS.includes(name)) return 0
+  if(ptInsenGroupTotal(trainerSales) < PT_INSEN_THRESHOLD) return 0
+  return Math.round((trainerSales[name]||0)*PT_INSEN_RATE)
+}
 export function fmt(n){return Math.round(n).toLocaleString('ko-KR')+'원';}
 export function fmtM(n){return Math.round(n/10000).toLocaleString('ko-KR')+'만';}
 function asDate(d){return d instanceof Date ? d : new Date(d);}

@@ -1,7 +1,8 @@
 import {useState} from 'react'
-import {TRAINERS,ML,fmt,fmtM} from '../data.js'
-import {MONTH_SALES,SALES_MONTH_KEYS} from '../salesData.js'
+import {TRAINERS,ML,fmt,fmtM,ptInsenFor} from '../data.js'
+import {useLiveSales} from '../useLiveSales.js'
 export default function Dashboard({role}) {
+  const {monthSales:MONTH_SALES, monthKeys:SALES_MONTH_KEYS} = useLiveSales()
   const [idx, setIdx] = useState(SALES_MONTH_KEYS.length-1)
   if (role!=='원장님') {
     return (
@@ -55,7 +56,7 @@ export default function Dashboard({role}) {
               </div>
               <div style={{textAlign:'right'}}>
                 <div style={{fontSize:13,fontWeight:500,color:'var(--green)'}}>{fmtM(amt)}</div>
-                <div style={{fontSize:11,color:'var(--text3)'}}>인센 +{fmt(Math.round(amt*0.12))}</div>
+                <div style={{fontSize:11,color:'var(--text3)'}}>{(()=>{const pi=ptInsenFor(tr.name,d.trainer);return pi>0?'인센 +'+fmt(pi):'인센 해당없음'})()}</div>
               </div>
             </div>
           )})}
