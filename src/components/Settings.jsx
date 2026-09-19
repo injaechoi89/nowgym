@@ -78,29 +78,33 @@ export default function Settings({ role, myTrainer }) {
   return (
     <div>
       <div className="card" style={{marginBottom:14}}>
-        <div className="card-title">운동 종목 관리</div>
-        <p style={{fontSize:13,color:'var(--text3)',marginBottom:14}}>
+        <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',gap:10}}>
+          <div className="card-title" style={{marginBottom:0}}>운동 종목 관리</div>
+          <button className="btn btn-g" style={{padding:'6px 14px',fontSize:12,flexShrink:0}} onClick={openNewEx}>+ 종목 추가</button>
+        </div>
+        <p style={{fontSize:13,color:'var(--text3)',margin:'6px 0 14px'}}>
           PT 운동일지에서 선택할 수 있는 운동 종목입니다. 운동명·설명·사진·영상 링크를 등록/수정할 수 있어요.
         </p>
         {Object.entries(exByCat).map(([cat, exs]) => (
-          <div key={cat} style={{marginBottom:10}}>
-            <div style={{fontSize:12,fontWeight:500,color:'var(--text3)',marginBottom:6}}>{cat}</div>
-            {exs.map(ex => (
-              <div key={ex.id} className="rrow" style={{gap:8}}>
-                {ex.imageUrl && <img src={ex.imageUrl} alt="" style={{width:28,height:28,borderRadius:6,objectFit:'cover'}}/>}
-                <span style={{flex:1,fontSize:13}}>{ex.name}</span>
-                {ex.createdBy && <span style={{fontSize:11,color:'var(--text3)'}}>{ex.createdBy==='원장님'?'원장님':`${ex.createdBy} 선생님`} 등록</span>}
-                {canEditEx(ex) ? (
-                  <>
-                    <button className="btn btn-outline" style={{padding:'5px 10px',fontSize:12}} onClick={()=>openEditEx(ex)}>수정</button>
-                    <button className="btn btn-danger" style={{padding:'5px 10px',fontSize:12}} onClick={()=>deleteEx(ex.id)}>삭제</button>
-                  </>
-                ) : null}
-              </div>
-            ))}
+          <div key={cat} style={{border:'0.5px solid var(--border)',borderRadius:'var(--radius)',marginBottom:10,overflow:'hidden'}}>
+            <div style={{fontSize:12,fontWeight:600,color:'var(--green-dark)',background:'var(--green-light)',padding:'6px 12px'}}>{cat} <span style={{fontWeight:400,color:'var(--text3)'}}>· {exs.length}개</span></div>
+            <div style={{padding:'0 12px'}}>
+              {exs.map(ex => (
+                <div key={ex.id} className="rrow" style={{gap:8}}>
+                  {ex.imageUrl && <img src={ex.imageUrl} alt="" style={{width:28,height:28,borderRadius:6,objectFit:'cover'}}/>}
+                  <span style={{flex:1,fontSize:13}}>{ex.name}</span>
+                  {ex.createdBy && <span style={{fontSize:11,color:'var(--text3)'}}>{ex.createdBy==='원장님'?'원장님':`${ex.createdBy} 선생님`} 등록</span>}
+                  {canEditEx(ex) ? (
+                    <>
+                      <button className="btn btn-outline" style={{padding:'5px 10px',fontSize:12}} onClick={()=>openEditEx(ex)}>수정</button>
+                      <button className="btn btn-danger" style={{padding:'5px 10px',fontSize:12}} onClick={()=>deleteEx(ex.id)}>삭제</button>
+                    </>
+                  ) : null}
+                </div>
+              ))}
+            </div>
           </div>
         ))}
-        <button className="btn btn-g" style={{marginTop:6}} onClick={openNewEx}>+ 종목 추가</button>
         {exForm && (
           <div className="modal-backdrop" onClick={e=>e.target===e.currentTarget&&setExForm(null)}>
             <div className="modal">
