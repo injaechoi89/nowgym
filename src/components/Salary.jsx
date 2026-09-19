@@ -48,6 +48,22 @@ export default function Salary({role, myTrainer}) {
   }
   const trainerCalcs = visibleTrainers.map(calcTrainer)
   const excInjaeTotal = trainerCalcs.filter(c=>c.tr.name!=='인재').reduce((a,c)=>a+c.total,0)
+  const calcExcInjaeTotalForMonth = mk => {
+    const md = MONTH_SALES[mk]
+    const [my, mmStr] = mk.split('-'); const mm = +mmStr
+    const pol = salaryPolicyFor(mk, salaryPolicies)
+    const miM = getTier(MT, Math.round(md.total/10000))[1]
+    const qIM = getQInsen(mk, MONTH_SALES).insen
+    return PT_INSEN_TRAINERS.reduce((sum, name) => {
+      const base = pol.base[name] || 1300000
+      const taskInsen = pol.taskInsen[name] ?? 400000
+      const ptInsen = ptInsenFor(name, md.trainer)
+      const hol = sumHolidayBonus(holRecs, name, +my, mm)
+      return sum + base + taskInsen + miM + ptInsen + hol + qIM
+    }, 0)
+  }
+  const monthlyExcInjaeTotals = SALES_MONTH_KEYS.map(mk => ({mk, total: calcExcInjaeTotalForMonth(mk)}))
+  const maxMonthlyTotal = Math.max(...monthlyExcInjaeTotals.map(m=>m.total))
   return (
     <div>
       <div className="cal-nav" style={{marginBottom:16}}>
@@ -60,6 +76,27 @@ export default function Salary({role, myTrainer}) {
           <div style={{background:'var(--blue)',padding:'12px 16px'}}>
             <div style={{color:'rgba(255,255,255,.85)',fontSize:12,marginBottom:3}}>정우·준혁·건호 합산 월급 (인재 제외) · {ML[month-1]}</div>
             <div style={{color:'#fff',fontSize:24,fontWeight:600}}>{fmt(excInjaeTotal)}</div>
+          </div>
+        </div>
+      )}
+      {isOwner && (
+        <div className="card" style={{marginBottom:16}}>
+          <div className="card-title">월별 합산 월급 추이 <span style={{fontSize:11,color:'var(--text3)'}}>정우·준혁·건호, 인재 제외</span></div>
+          <div style={{display:'flex',flexDirection:'column',gap:8}}>
+            {monthlyExcInjaeTotals.map(({mk},i)=>({mk,i})).reverse().map(({mk,i})=>{
+              const total=monthlyExcInjaeTotals[i].total
+              const pct=Math.round(total/maxMonthlyTotal*100)
+              const [ky,km]=mk.split('-')
+              return (
+                <div key={mk} style={{display:'flex',alignItems:'center',gap:10}}>
+                  <div style={{fontSize:11,color:'var(--text3)',width:52,textAlign:'right',flexShrink:0}}>{ky.slice(2)}.{km}월</div>
+                  <div style={{flex:1,height:22,background:'var(--surface1)',borderRadius:4,overflow:'hidden'}}>
+                    <div style={{height:'100%',width:pct+'%',background:i===idx?'var(--green)':'var(--blue)',borderRadius:4,display:'flex',alignItems:'center',paddingLeft:8,fontSize:10,color:'#fff',fontWeight:500}}>{pct>25?fmtM(total):''}</div>
+                  </div>
+                  <div style={{fontSize:11,color:'var(--text3)',width:48,textAlign:'right',flexShrink:0}}>{fmtM(total)}</div>
+                </div>
+              )
+            })}
           </div>
         </div>
       )}
