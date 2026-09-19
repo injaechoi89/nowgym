@@ -102,3 +102,31 @@ export function sumHolidayBonus(holRecs, trainerName, year, month) {
     })
     .reduce((sum, r) => sum + holidayBonusAmount(r.type), 0)
 }
+
+// 분기(3,6,9,12월) 마지막 달에만 지급되는 분기 매출 인센티브. 그 분기 3개월 매출 합산(만원 단위)으로 구간을 찾습니다.
+export function getQInsen(key,sales){
+  const [yearStr,monthStr]=key.split('-'); const year=+yearStr; const m=+monthStr
+  const qEnd=[3,6,9,12]; if(!qEnd.includes(m))return{insen:0,label:''};
+  const q=Math.ceil(m/3)
+  const qMonths=[q*3-2,q*3-1,q*3]
+  const qKeys=qMonths.map(mm=>`${year}-${String(mm).padStart(2,'0')}`).filter(k=>sales[k])
+  const qSum=qKeys.reduce((a,k)=>a+Math.round((sales[k]?.total||0)/10000),0)
+  const insen=getTier(QT,qSum)[1]
+  const firstM=+qKeys[0]?.split('-')[1]||qMonths[0]
+  const lastM=+qKeys[qKeys.length-1]?.split('-')[1]||qMonths[qMonths.length-1]
+  return{insen,label:`${q}분기 (${ML[firstM-1]}~${ML[lastM-1]}, 총 ${qSum.toLocaleString()}만원)`}
+}
+
+// 트레이너 한 명의 특정 달 최종 급여(기본급+과업인센+센터매출인센+PT인센+휴일근무+분기인센) 합계.
+export function calcTrainerSalaryForMonth(name, key, {salaryPolicies, holRecs, monthSales}) {
+  const d = monthSales[key]
+  const [year, monthStr] = key.split('-'); const month = +monthStr
+  const policy = salaryPolicyFor(key, salaryPolicies)
+  const base = policy.base[name] || 1300000
+  const taskInsen = policy.taskInsen[name] ?? 400000
+  const mi = getTier(MT, Math.round(d.total/10000))[1]
+  const ptInsen = ptInsenFor(name, d.trainer)
+  const hol = sumHolidayBonus(holRecs, name, +year, month)
+  const qI = getQInsen(key, monthSales).insen
+  return base+taskInsen+mi+ptInsen+hol+qI
+}

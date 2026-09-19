@@ -95,7 +95,7 @@ export default function App() {
           </div>
         </div>
         <div className="content">
-          <Page role={role} myTrainer={myTrainer} onOpenDiary={goToDiary} diaryJump={diaryJump} onDiaryJumpHandled={()=>setDiaryJump(null)} />
+          <Page role={role} myTrainer={myTrainer} onOpenDiary={goToDiary} diaryJump={diaryJump} onDiaryJumpHandled={()=>setDiaryJump(null)} onNavigate={goPage} />
         </div>
       </div>
     </div>

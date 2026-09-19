@@ -2,14 +2,14 @@ import {useState, useRef, useEffect} from 'react'
 import {TODAY, ML, TRAINERS} from '../data.js'
 import {readFileAsDataUrl, processImage, getCertPhotos, saveCertPhoto, deleteCertPhoto, subscribeCertPhotos} from '../photoUtils.js'
 
-const DOT_COLOR = {clean:'#1D9E75',insta:'#D4537E',blog:'#378ADD',review:'#BA7517'}
-const TYPE_LABEL = {clean:'청소',insta:'인스타',blog:'블로그',review:'리뷰'}
+export const DOT_COLOR = {clean:'#1D9E75',insta:'#D4537E',blog:'#378ADD',review:'#BA7517'}
+export const TYPE_LABEL = {clean:'청소',insta:'인스타',blog:'블로그',review:'리뷰'}
 const TYPE_UNIT = {clean:'일',insta:'회',blog:'회',review:'개'}
-const TYPES = ['clean','insta','blog','review']
+export const TYPES = ['clean','insta','blog','review']
 // 청소 월 20회, 인스타/블로그 주 1회(≈월 4회), 리뷰 월 2회 목표
-const MONTHLY_TARGET = {clean:20,insta:4,blog:4,review:2}
+export const MONTHLY_TARGET = {clean:20,insta:4,blog:4,review:2}
 
-function toKey(y,m,d){return `${y}-${m+1}-${d}`}
+export function toKey(y,m,d){return `${y}-${m+1}-${d}`}
 
 function IconInsta({size=26}) {
   return (

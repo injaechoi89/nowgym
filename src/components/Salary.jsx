@@ -1,20 +1,7 @@
 import {useState} from 'react'
 import {useSyncedState} from '../useSyncedState.js'
-import {TRAINERS,SALARY_POLICY_INIT,salaryPolicyFor,MT,QT,ML,HOL_RECORDS_INIT,getTier,fmt,fmtM,sumHolidayBonus,PT_INSEN_TRAINERS,ptInsenGroupTotal,ptInsenFor,PT_INSEN_THRESHOLD} from '../data.js'
+import {TRAINERS,SALARY_POLICY_INIT,salaryPolicyFor,MT,ML,HOL_RECORDS_INIT,getTier,fmt,fmtM,sumHolidayBonus,PT_INSEN_TRAINERS,ptInsenGroupTotal,ptInsenFor,PT_INSEN_THRESHOLD,getQInsen} from '../data.js'
 import {useLiveSales} from '../useLiveSales.js'
-
-function getQInsen(key,sales){
-  const [yearStr,monthStr]=key.split('-'); const year=+yearStr; const m=+monthStr
-  const qEnd=[3,6,9,12]; if(!qEnd.includes(m))return{insen:0,label:''};
-  const q=Math.ceil(m/3)
-  const qMonths=[q*3-2,q*3-1,q*3]
-  const qKeys=qMonths.map(mm=>`${year}-${String(mm).padStart(2,'0')}`).filter(k=>sales[k])
-  const qSum=qKeys.reduce((a,k)=>a+Math.round((sales[k]?.total||0)/10000),0)
-  const insen=getTier(QT,qSum)[1]
-  const firstM=+qKeys[0]?.split('-')[1]||qMonths[0]
-  const lastM=+qKeys[qKeys.length-1]?.split('-')[1]||qMonths[qMonths.length-1]
-  return{insen,label:`${q}분기 (${ML[firstM-1]}~${ML[lastM-1]}, 총 ${qSum.toLocaleString()}만원)`}
-}
 
 export default function Salary({role, myTrainer}) {
   const isOwner = role==='원장님'

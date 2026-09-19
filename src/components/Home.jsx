@@ -1,17 +1,46 @@
-import { TRAINERS, fmt, fmtM, ML, ptInsenFor } from '../data.js'
+import { useEffect, useState } from 'react'
+import { TRAINERS, TODAY, PT_MEMBERS_INIT, PT_DATA, HOL_RECORDS_INIT, SALARY_POLICY_INIT, fmt, fmtM, ML, ptInsenFor, calcTrainerSalaryForMonth, addWeeks } from '../data.js'
 import { SALES_MONTH_KEYS } from '../salesData.js'
 import { useLiveSales } from '../useLiveSales.js'
-export default function Home({role, myTrainer}) {
+import { useSyncedState } from '../useSyncedState.js'
+import { getCertPhotos, subscribeCertPhotos } from '../photoUtils.js'
+import { TYPES, TYPE_LABEL, DOT_COLOR, MONTHLY_TARGET } from './Task.jsx'
+
+export default function Home({role, myTrainer, onNavigate}) {
   const isOwner = role==='원장님'
   const curKey = SALES_MONTH_KEYS[SALES_MONTH_KEYS.length-1]
   const prevKey = SALES_MONTH_KEYS[SALES_MONTH_KEYS.length-2]
-  const { monthSales: MONTH_SALES } = useLiveSales([prevKey, curKey].filter(Boolean))
+  const curMonthNum = +curKey.split('-')[1]
+  const q = Math.ceil(curMonthNum/3)
+  const qKeys = [q*3-2,q*3-1,q*3].map(mm=>`${curKey.split('-')[0]}-${String(mm).padStart(2,'0')}`)
+  const { monthSales: MONTH_SALES } = useLiveSales([...new Set([prevKey, curKey, ...qKeys].filter(Boolean))])
   const d = MONTH_SALES[curKey]
   const prev = prevKey ? MONTH_SALES[prevKey] : null
-  const curMonth = +curKey.split('-')[1]
+  const curMonth = curMonthNum
   const diff = prev ? Math.round((d.total-prev.total)/prev.total*100) : 0
   const myAmt = d.trainer[myTrainer]||0
   const myPtInsen = ptInsenFor(myTrainer, d.trainer)
+
+  const [salaryPolicies] = useSyncedState('nowgym-salary-policy', SALARY_POLICY_INIT)
+  const [holRecs] = useSyncedState('nowgym-holiday-work', HOL_RECORDS_INIT)
+  const mySalary = calcTrainerSalaryForMonth(myTrainer, curKey, {salaryPolicies, holRecs, monthSales: MONTH_SALES})
+
+  const [members] = useSyncedState('nowgym-pt-members', PT_MEMBERS_INIT)
+  const myActiveMembers = members.filter(m => m.trainer===myTrainer && TODAY <= addWeeks(m.start, m.product.weeks)).length
+
+  const [ptData] = useSyncedState('nowgym-pt-schedule', PT_DATA)
+  const todayKey = `${TODAY.getFullYear()}-${TODAY.getMonth()+1}-${TODAY.getDate()}`
+  const todayMemberCount = new Set((ptData[myTrainer]||[]).filter(p=>p.dateKey===todayKey).map(p=>p.m)).size
+
+  const [photos, setPhotos] = useState(getCertPhotos())
+  useEffect(() => subscribeCertPhotos(setPhotos), [])
+  const taskData = photos[myTrainer]||{}
+  const taskKeysThisMonth = Object.keys(taskData).filter(k=>{const p=k.split('-');return +p[1]===TODAY.getMonth()+1 && +p[0]===TODAY.getFullYear()})
+  const taskProgress = TYPES.map(t=>{
+    const done = taskKeysThisMonth.filter(k=>taskData[k]?.[t]).length
+    const target = MONTHLY_TARGET[t]
+    return {t, done, target, pct: Math.min(100, Math.round(done/target*100))}
+  })
 
   const allAlerts = [
     {color:'#E05A2B', text:'건호 — 오늘 청소 미인증', trainer:'건호'},
@@ -33,11 +62,48 @@ export default function Home({role, myTrainer}) {
           <div className="metric"><div className="metric-label">10월 10일 지급</div><div className="metric-val o">D-5</div><div className="metric-sub">급여 지급일</div></div>
         </div>
       ) : (
-        <div className="metric-grid" style={{gridTemplateColumns:'repeat(3,minmax(0,1fr))'}}>
-          <div className="metric"><div className="metric-label">{ML[curMonth-1]} 내 PT 매출</div><div className="metric-val g">{fmtM(myAmt)}</div><div className="metric-sub">{myPtInsen>0?'인센 +'+fmt(myPtInsen):'인센 해당없음'}</div></div>
-          <div className="metric"><div className="metric-label">이번달 신규 회원</div><div className="metric-val">{d.newMem}명</div><div className="metric-sub">센터 전체</div></div>
-          <div className="metric"><div className="metric-label">10월 10일 지급</div><div className="metric-val o">D-5</div><div className="metric-sub">급여 지급일</div></div>
-        </div>
+        <>
+          <div className="metric-grid" style={{gridTemplateColumns:'repeat(2,minmax(0,1fr))'}}>
+            <div className="metric" style={{cursor:'pointer'}} onClick={()=>onNavigate&&onNavigate('salary')}>
+              <div className="metric-label">{ML[curMonth-1]} 내 예상 월급</div>
+              <div className="metric-val g">{fmt(mySalary)}</div>
+              <div className="metric-sub">급여 정산 바로가기 →</div>
+            </div>
+            <div className="metric" style={{cursor:'pointer'}} onClick={()=>onNavigate&&onNavigate('salary')}>
+              <div className="metric-label">{ML[curMonth-1]} 내 PT 매출</div>
+              <div className="metric-val b">{fmtM(myAmt)}</div>
+              <div className="metric-sub">{myPtInsen>0?'인센 +'+fmt(myPtInsen):'인센 해당없음'}</div>
+            </div>
+          </div>
+          <div className="metric-grid" style={{gridTemplateColumns:'repeat(2,minmax(0,1fr))'}}>
+            <div className="metric" style={{cursor:'pointer'}} onClick={()=>onNavigate&&onNavigate('contract')}>
+              <div className="metric-label">내 PT 유효 회원 수</div>
+              <div className="metric-val">{myActiveMembers}명</div>
+              <div className="metric-sub">PT회원 관리 바로가기 →</div>
+            </div>
+            <div className="metric" style={{cursor:'pointer'}} onClick={()=>onNavigate&&onNavigate('pt')}>
+              <div className="metric-label">오늘 진행할 PT 회원수</div>
+              <div className="metric-val o">{todayMemberCount}명</div>
+              <div className="metric-sub">PT 시간표 바로가기 →</div>
+            </div>
+          </div>
+          <div className="card" style={{cursor:'pointer',marginBottom:16}} onClick={()=>onNavigate&&onNavigate('task')}>
+            <div className="card-title">과업 인증 · {ML[TODAY.getMonth()]} 진행률</div>
+            <div style={{display:'flex',gap:14,flexWrap:'wrap'}}>
+              {taskProgress.map(({t,done,target,pct})=>(
+                <div key={t} style={{flex:'1 1 100px',minWidth:100}}>
+                  <div style={{display:'flex',alignItems:'center',gap:5,fontSize:12,color:'var(--text3)',marginBottom:4}}>
+                    <span style={{width:8,height:8,borderRadius:'50%',background:DOT_COLOR[t],display:'inline-block'}}></span>
+                    {TYPE_LABEL[t]}
+                  </div>
+                  <div className="bar-bg"><div className="bar-fill" style={{width:pct+'%',background:DOT_COLOR[t]}}></div></div>
+                  <div style={{fontSize:11,color:'var(--text3)',marginTop:3}}>{done}/{target} · {pct}%</div>
+                </div>
+              ))}
+            </div>
+            <div style={{fontSize:11,color:'var(--text3)',marginTop:10}}>과업 인증 바로가기 →</div>
+          </div>
+        </>
       )}
       <div className="grid-2">
         <div className="card">
