@@ -42,14 +42,6 @@ export default function Home({role, myTrainer, onNavigate}) {
     return {t, done, target, pct: Math.min(100, Math.round(done/target*100))}
   })
 
-  const allAlerts = [
-    {color:'#E05A2B', text:'건호 — 오늘 청소 미인증', trainer:'건호'},
-    {color:'#E24B4A', text:'준혁 — 이번달 리뷰 1개 남음', trainer:'준혁'},
-    {color:'#378ADD', text:'건호 — 블로그 이번주 미완료', trainer:'건호'},
-    {color:'#1D9E75', text:'10월 10일 급여 지급 예정 (D-5)', trainer:null},
-  ]
-  const alerts = isOwner ? allAlerts : allAlerts.filter(a => !a.trainer || a.trainer===myTrainer)
-
   return (
     <div>
       <div style={{fontSize:20,fontWeight:600,marginBottom:4}}>안녕하세요{isOwner?'':`, ${myTrainer} 선생님`} 👋</div>
@@ -88,7 +80,10 @@ export default function Home({role, myTrainer, onNavigate}) {
             </div>
           </div>
           <div className="card" style={{cursor:'pointer',marginBottom:16}} onClick={()=>onNavigate&&onNavigate('task')}>
-            <div className="card-title">과업 인증 · {ML[TODAY.getMonth()]} 진행률</div>
+            <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',gap:10,marginBottom:14}}>
+              <div className="card-title" style={{marginBottom:0}}>과업 인증 · {ML[TODAY.getMonth()]} 진행률</div>
+              <button className="btn btn-g" style={{padding:'6px 14px',fontSize:12,flexShrink:0}} onClick={()=>onNavigate&&onNavigate('task')}>오늘 과업 인증</button>
+            </div>
             <div style={{display:'flex',gap:14,flexWrap:'wrap'}}>
               {taskProgress.map(({t,done,target,pct})=>(
                 <div key={t} style={{flex:'1 1 100px',minWidth:100}}>
@@ -105,37 +100,25 @@ export default function Home({role, myTrainer, onNavigate}) {
           </div>
         </>
       )}
-      <div className="grid-2">
+      {isOwner && (
         <div className="card">
-          <div className="card-title">⚠️ 확인 필요</div>
-          {alerts.length===0 && <div className="empty-state">확인할 항목이 없어요.</div>}
-          {alerts.map((a,i)=>(
-            <div key={i} style={{display:'flex',alignItems:'center',gap:10,padding:'8px 0',borderBottom:i<alerts.length-1?'0.5px solid var(--border)':'none'}}>
-              <div style={{width:8,height:8,borderRadius:'50%',background:a.color,flexShrink:0}}></div>
-              <span style={{fontSize:13,color:'var(--text)',flex:1}}>{a.text}</span>
-            </div>
-          ))}
-        </div>
-        {isOwner && (
-          <div className="card">
-            <div className="card-title">트레이너별 PT 매출 ({ML[curMonth-1]})</div>
-            {TRAINERS.map((tr,i)=>{
-              const amt = d.trainer[tr.name]||0
-              const max = Math.max(...Object.values(d.trainer))
-              return (
-                <div key={i} style={{display:'flex',alignItems:'center',gap:10,padding:'7px 0',borderBottom:i<TRAINERS.length-1?'0.5px solid var(--border)':'none'}}>
-                  <div className={`av ${tr.av}`} style={{width:30,height:30,fontSize:11}}>{tr.short}</div>
-                  <div style={{flex:1}}>
-                    <div style={{fontSize:13,fontWeight:500,marginBottom:4}}>{tr.name}</div>
-                    <div className="bar-bg"><div className="bar-fill" style={{width:(max?Math.round(amt/max*100):0)+'%',background:'var(--green)'}}></div></div>
-                  </div>
-                  <div style={{fontSize:13,fontWeight:500,color:'var(--green)',whiteSpace:'nowrap'}}>{fmtM(amt)}</div>
+          <div className="card-title">트레이너별 PT 매출 ({ML[curMonth-1]})</div>
+          {TRAINERS.map((tr,i)=>{
+            const amt = d.trainer[tr.name]||0
+            const max = Math.max(...Object.values(d.trainer))
+            return (
+              <div key={i} style={{display:'flex',alignItems:'center',gap:10,padding:'7px 0',borderBottom:i<TRAINERS.length-1?'0.5px solid var(--border)':'none'}}>
+                <div className={`av ${tr.av}`} style={{width:30,height:30,fontSize:11}}>{tr.short}</div>
+                <div style={{flex:1}}>
+                  <div style={{fontSize:13,fontWeight:500,marginBottom:4}}>{tr.name}</div>
+                  <div className="bar-bg"><div className="bar-fill" style={{width:(max?Math.round(amt/max*100):0)+'%',background:'var(--green)'}}></div></div>
                 </div>
-              )
-            })}
-          </div>
-        )}
-      </div>
+                <div style={{fontSize:13,fontWeight:500,color:'var(--green)',whiteSpace:'nowrap'}}>{fmtM(amt)}</div>
+              </div>
+            )
+          })}
+        </div>
+      )}
     </div>
   )
 }
