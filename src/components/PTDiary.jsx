@@ -149,7 +149,7 @@ export default function PTDiary({role, myTrainer, diaryJump, onDiaryJumpHandled}
                 <div style={{display:'flex',alignItems:'center',gap:10}}>
                   <div className="av av3" style={{width:40,height:40,fontSize:13}}>{m.name.slice(0,2)}</div>
                   <div style={{flex:1}}>
-                    <div style={{fontSize:15,fontWeight:500}}>{m.name}</div>
+                    <div style={{fontSize:15,fontWeight:500}}>{m.name}{m.goal&&<span style={{fontSize:11,fontWeight:400,color:'var(--green-dark)',background:'var(--green-light)',borderRadius:8,padding:'1px 7px',marginLeft:6}}>{m.goal}</span>}</div>
                     <div style={{fontSize:12,color:'var(--text3)'}}>{m.product.name}</div>
                   </div>
                   <span className="badge badge-g">일지 {cnt}개</span>
@@ -166,7 +166,7 @@ export default function PTDiary({role, myTrainer, diaryJump, onDiaryJumpHandled}
               <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:10}}>
                 <div className="av av3" style={{width:40,height:40,fontSize:13}}>{selMember.name.slice(0,2)}</div>
                 <div style={{flex:1}}>
-                  <div style={{fontSize:15,fontWeight:500}}>{selMember.name}</div>
+                  <div style={{fontSize:15,fontWeight:500}}>{selMember.name}{selMember.goal&&<span style={{fontSize:11,fontWeight:400,color:'var(--green-dark)',background:'var(--green-light)',borderRadius:8,padding:'1px 7px',marginLeft:6}}>{selMember.goal}</span>}</div>
                   <div style={{fontSize:12,color:'var(--text3)'}}>{selMember.product.name}</div>
                 </div>
                 <span className="badge badge-g">일지 {memberLogs.length}개</span>
@@ -262,7 +262,7 @@ export default function PTDiary({role, myTrainer, diaryJump, onDiaryJumpHandled}
         <div className="grid-2">
           <div>
             <div className="card" style={{marginBottom:12}}>
-              <div style={{fontSize:15,fontWeight:500,marginBottom:2}}>{selMemberName}님 운동 루틴 {selLog?'수정':'등록'}</div>
+              <div style={{fontSize:15,fontWeight:500,marginBottom:2}}>{selMemberName}{selMember&&selMember.goal&&<span style={{fontSize:11,fontWeight:400,color:'var(--green-dark)',background:'var(--green-light)',borderRadius:8,padding:'1px 7px',marginLeft:6}}>{selMember.goal}</span>}님 운동 루틴 {selLog?'수정':'등록'}</div>
               {selDateKey&&(()=>{const [py,pm,pd]=selDateKey.split('-').map(Number);return <div style={{fontSize:13,color:'var(--text3)',marginBottom:10}}>{py}년 {pm}월 {pd}일 ({WD[new Date(py,pm-1,pd).getDay()]})</div>})()}
               <div>
                 <label style={{fontSize:12,color:'var(--text3)',display:'block',marginBottom:6}}>운동 강도</label>

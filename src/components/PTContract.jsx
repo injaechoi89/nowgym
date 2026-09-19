@@ -6,7 +6,8 @@ export default function PTContract({role, myTrainer}) {
   const [members,setMembers]=useSyncedState('nowgym-pt-members', PT_MEMBERS_INIT)
   const [view,setView]=useState('list')
   const [cur,setCur]=useState(null)
-  const [form,setForm]=useState({name:'',phone:'',birth:'',gender:'남',trainer:'인재',regType:'신규',payMethod:'카드',start:toDateInput(TODAY),actual:'',staff:'인재',productId:'f10'})
+  const [renewMode,setRenewMode]=useState(false)
+  const [form,setForm]=useState({name:'',phone:'',birth:'',gender:'남',trainer:'인재',goal:'',regType:'신규',payMethod:'카드',start:toDateInput(TODAY),actual:'',staff:'인재',productId:'f10'})
   const [kkModal,setKkModal]=useState(null)
   const selProd=PRODUCTS.find(p=>p.id===form.productId)||PRODUCTS[3]
   const startDate=form.start?new Date(form.start):TODAY
@@ -14,11 +15,21 @@ export default function PTContract({role, myTrainer}) {
   const actual=parseInt(form.actual)||selProd.price
   const discount=selProd.price-actual
   const visibleMembers = isOwner ? members : members.filter(m=>m.trainer===myTrainer)
-  const openNew=()=>{setForm({name:'',phone:'',birth:'',gender:'남',trainer:isOwner?'인재':myTrainer,regType:'신규',payMethod:'카드',start:toDateInput(TODAY),actual:'',staff:isOwner?'인재':myTrainer,productId:'f10'});setCur(null);setView('form')}
-  const openEdit=m=>{setForm({name:m.name,phone:m.phone,birth:m.birth,gender:m.gender,trainer:m.trainer,regType:m.regType,payMethod:m.payMethod,start:toDateInput(m.start),actual:m.actual,staff:m.staff,productId:m.product.id});setCur(m);setView('form')}
+  const openNew=()=>{setForm({name:'',phone:'',birth:'',gender:'남',trainer:isOwner?'인재':myTrainer,goal:'',regType:'신규',payMethod:'카드',start:toDateInput(TODAY),actual:'',staff:isOwner?'인재':myTrainer,productId:'f10'});setCur(null);setRenewMode(false);setView('form')}
+  const openEdit=m=>{setForm({name:m.name,phone:m.phone,birth:m.birth,gender:m.gender,trainer:m.trainer,goal:m.goal||'',regType:m.regType,payMethod:m.payMethod,start:toDateInput(m.start),actual:m.actual,staff:m.staff,productId:m.product.id});setCur(m);setRenewMode(false);setView('form')}
+  const openRenew=m=>{setForm({name:m.name,phone:m.phone,birth:m.birth,gender:m.gender,trainer:m.trainer,goal:m.goal||'',regType:'재등록',payMethod:m.payMethod,start:toDateInput(TODAY),actual:'',staff:m.staff,productId:m.product.id});setCur(m);setRenewMode(true);setView('form')}
   const saveForm=()=>{
     const p=form.start.split('-'); const sd=new Date(+p[0],+p[1]-1,+p[2])
-    const nm={id:cur?cur.id:Date.now(),name:form.name||'홍길동',phone:form.phone||'010-0000-0000',birth:form.birth,gender:form.gender,trainer:form.trainer,product:selProd,regType:form.regType,payMethod:form.payMethod,start:sd,actual:actual,staff:form.staff}
+    if(cur&&renewMode){
+      const newContract={id:'c'+Date.now(),product:selProd,regType:form.regType,payMethod:form.payMethod,start:sd,actual,staff:form.staff}
+      const nm={...cur,name:form.name||cur.name,phone:form.phone||cur.phone,birth:form.birth,gender:form.gender,trainer:form.trainer,goal:form.goal,product:selProd,regType:form.regType,payMethod:form.payMethod,start:sd,actual,staff:form.staff,contracts:[...(cur.contracts||[]),newContract]}
+      setMembers(ms=>ms.map(m=>m.id===cur.id?nm:m))
+      setRenewMode(false); setView('preview'); setCur(nm)
+      return
+    }
+    const updatedContract={id:cur&&cur.contracts&&cur.contracts.length?cur.contracts[cur.contracts.length-1].id:'c'+Date.now(),product:selProd,regType:form.regType,payMethod:form.payMethod,start:sd,actual,staff:form.staff}
+    const contracts=cur&&cur.contracts&&cur.contracts.length?[...cur.contracts.slice(0,-1),updatedContract]:[updatedContract]
+    const nm={id:cur?cur.id:Date.now(),name:form.name||'홍길동',phone:form.phone||'010-0000-0000',birth:form.birth,gender:form.gender,trainer:form.trainer,goal:form.goal,product:selProd,regType:form.regType,payMethod:form.payMethod,start:sd,actual:actual,staff:form.staff,contracts}
     setMembers(ms=>cur?ms.map(m=>m.id===cur.id?nm:m):[...ms,nm])
     setView('preview'); setCur(nm)
   }
@@ -69,6 +80,7 @@ export default function PTContract({role, myTrainer}) {
       {view==='form'&&(
         <div className="grid-2">
           <div>
+            {renewMode&&<div className="card" style={{marginBottom:12,background:'var(--green-light)',color:'var(--green-dark)',fontSize:13,fontWeight:500}}>🔄 {cur.name}님 재등록 · 새 계약 추가</div>}
             <div className="card" style={{marginBottom:12}}>
               <div style={{fontWeight:500,marginBottom:12}}>회원 정보</div>
               {[['이름','name','text','홍길동'],['연락처','phone','text','010-0000-0000'],['생년월일','birth','text','990101']].map(([l,k,t,ph])=>(
@@ -76,6 +88,7 @@ export default function PTContract({role, myTrainer}) {
               ))}
               <div className="rrow"><span className="rl">성별</span><select value={form.gender} onChange={e=>setForm(f=>({...f,gender:e.target.value}))} style={{border:'none',background:'transparent',textAlign:'right',fontSize:13}}><option value="남">남</option><option value="여">여</option></select></div>
               <div className="rrow"><span className="rl">담당 트레이너</span><select value={form.trainer} disabled={!isOwner} onChange={e=>setForm(f=>({...f,trainer:e.target.value}))} style={{border:'none',background:'transparent',textAlign:'right',fontSize:13}}>{(isOwner?TRAINERS:TRAINERS.filter(t=>t.name===myTrainer)).map(t=><option key={t.name} value={t.name}>{t.name}</option>)}</select></div>
+              <div className="rrow"><span className="rl">운동목적</span><input type="text" value={form.goal} onChange={e=>setForm(f=>({...f,goal:e.target.value}))} placeholder="예: 체지방 감량, 근력 강화" style={{border:'none',background:'transparent',textAlign:'right',color:'var(--text)',fontSize:13,outline:'none'}}/></div>
             </div>
             <div className="card" style={{marginBottom:12}}>
               <div style={{fontWeight:500,marginBottom:12}}>결제 정보</div>
@@ -100,7 +113,7 @@ export default function PTContract({role, myTrainer}) {
               </div>
             </div>
             <div style={{display:'flex',gap:8}}>
-              <button className="btn btn-outline" style={{flex:1}} onClick={()=>setView('list')}>취소</button>
+              <button className="btn btn-outline" style={{flex:1}} onClick={()=>{setRenewMode(false);setView(cur?'preview':'list')}}>취소</button>
               <button className="btn btn-g" style={{flex:2,padding:12,fontSize:14}} onClick={saveForm}>확인</button>
             </div>
           </div>
@@ -119,6 +132,7 @@ export default function PTContract({role, myTrainer}) {
                 <div style={{fontSize:11,fontWeight:500,color:'var(--text3)',marginBottom:8}}>회원 정보</div>
                 <div className="rrow"><span className="rl">성명</span><span className="rv">{cur.name}</span></div>
                 <div className="rrow"><span className="rl">연락처</span><span className="rv">{cur.phone}</span></div>
+                {cur.goal&&<div className="rrow"><span className="rl">운동목적</span><span className="rv">{cur.goal}</span></div>}
                 <div style={{fontSize:11,fontWeight:500,color:'var(--text3)',margin:'10px 0 8px'}}>수강 정보</div>
                 <div className="rrow"><span className="rl">담당 트레이너</span><span className="rv">{cur.trainer}</span></div>
                 <div className="rrow"><span className="rl">PT 종류</span><span className="rv">{cur.product.type==='half'?'하프PT (30분)':'일반PT (50분)'}</span></div>
@@ -136,10 +150,22 @@ export default function PTContract({role, myTrainer}) {
                 </div>
               </div>
             </div>
-            <div style={{display:'flex',gap:8}}>
+            <div style={{display:'flex',gap:8,marginBottom:12}}>
               <button className="btn btn-outline" onClick={()=>openEdit(cur)}>수정</button>
               <button className="btn btn-outline" onClick={()=>setView('list')}>목록</button>
             </div>
+            <button className="btn btn-g" style={{width:'100%'}} onClick={()=>openRenew(cur)}>🔄 재등록 (새 계약 추가)</button>
+            {cur.contracts&&cur.contracts.length>1&&(
+              <div className="card" style={{marginTop:12}}>
+                <div style={{fontSize:11,fontWeight:500,color:'var(--text3)',marginBottom:8}}>계약 이력 ({cur.contracts.length}건)</div>
+                {cur.contracts.slice().reverse().map((c,i)=>(
+                  <div key={c.id} className="rrow" style={{alignItems:'flex-start'}}>
+                    <span className="rl">{c.regType} · {fmtDate(c.start)}</span>
+                    <span className="rv" style={{textAlign:'right'}}>{c.product.name}<br/><span style={{fontSize:11,color:'var(--text3)'}}>{c.payMethod} · {fmt(c.actual)}</span></span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
           <div>
             <div style={{display:'flex',flexDirection:'column',gap:8}}>
