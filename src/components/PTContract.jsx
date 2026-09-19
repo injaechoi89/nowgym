@@ -55,6 +55,21 @@ export default function PTContract({role, myTrainer}) {
     }
     setKkModal({msg,name:cur.name})
   }
+  const deleteMember=m=>{
+    if(!window.confirm(`${m.name}님을 삭제할까요? 계약서를 포함한 모든 정보가 삭제되며 되돌릴 수 없어요.`))return
+    setMembers(ms=>ms.filter(x=>x.id!==m.id))
+    if(cur&&cur.id===m.id){setCur(null);setView('list')}
+  }
+  const deleteContract=(m,contractId)=>{
+    const curContracts=contractsOf(m)
+    if(curContracts.length<=1){alert('마지막 남은 계약서는 삭제할 수 없어요. 회원을 통째로 삭제하려면 회원 삭제를 이용해주세요.');return}
+    if(!window.confirm('이 계약서를 삭제할까요? 되돌릴 수 없어요.'))return
+    const remaining=curContracts.filter(c=>c.id!==contractId)
+    const latest=remaining[remaining.length-1]
+    const nm={...m,contracts:remaining,product:latest.product,regType:latest.regType,payMethod:latest.payMethod,start:latest.start,actual:latest.actual,staff:latest.staff}
+    setMembers(ms=>ms.map(x=>x.id===m.id?nm:x))
+    setCur(nm)
+  }
   const trI=['정우','준혁','건호','인재']
   return (
     <div>
@@ -77,6 +92,7 @@ export default function PTContract({role, myTrainer}) {
                       <div style={{fontSize:12,color:'var(--text3)'}}>{m.trainer} · {m.product.name}</div>
                     </div>
                     <span className={`badge ${m.regType==='신규'?'badge-g':'badge-b'}`}>{m.regType}</span>
+                    <button className="btn btn-danger" style={{padding:'5px 10px',fontSize:12}} onClick={e=>{e.stopPropagation();deleteMember(m)}}>삭제</button>
                   </div>
                   <div className="rrow"><span className="rl">시작일</span><span className="rv">{fmtDate(m.start)}</span></div>
                   <div className="rrow"><span className="rl">만료일</span><span className="rv">{fmtDate(expire)}</span></div>
@@ -148,8 +164,11 @@ export default function PTContract({role, myTrainer}) {
                 return (
                   <div key={c.id} className="card" style={{padding:0,overflow:'hidden',marginBottom:12}}>
                     <div style={{background:'var(--green)',padding:'16px',position:'relative'}}>
-                      <button onClick={()=>openEditContract(cur,c)} style={{position:'absolute',top:12,right:12,background:'rgba(255,255,255,.22)',border:'none',borderRadius:8,color:'#fff',fontSize:12,padding:'5px 10px',cursor:'pointer'}}>수정</button>
-                      <div style={{color:'rgba(255,255,255,.8)',fontSize:12,marginBottom:4,paddingRight:50}}>🏋️ 나우짐 · 대구 혁신도시{isLatest?' · 현재 계약':''}</div>
+                      <div style={{position:'absolute',top:12,right:12,display:'flex',gap:6}}>
+                        <button onClick={()=>openEditContract(cur,c)} style={{background:'rgba(255,255,255,.22)',border:'none',borderRadius:8,color:'#fff',fontSize:12,padding:'5px 10px',cursor:'pointer'}}>수정</button>
+                        <button onClick={()=>deleteContract(cur,c.id)} style={{background:'rgba(0,0,0,.2)',border:'none',borderRadius:8,color:'#fff',fontSize:12,padding:'5px 10px',cursor:'pointer'}}>삭제</button>
+                      </div>
+                      <div style={{color:'rgba(255,255,255,.8)',fontSize:12,marginBottom:4,paddingRight:95}}>🏋️ 나우짐 · 대구 혁신도시{isLatest?' · 현재 계약':''}</div>
                       <div style={{color:'#fff',fontSize:18,fontWeight:500,marginBottom:3}}>PT 이용 계약서</div>
                       <div style={{color:'rgba(255,255,255,.8)',fontSize:12}}>{fmtDate(c.start)} 등록</div>
                     </div>
