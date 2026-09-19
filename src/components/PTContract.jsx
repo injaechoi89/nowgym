@@ -7,6 +7,7 @@ export default function PTContract({role, myTrainer}) {
   const [view,setView]=useState('list')
   const [cur,setCur]=useState(null)
   const [renewMode,setRenewMode]=useState(false)
+  const [editContractId,setEditContractId]=useState(null)
   const [form,setForm]=useState({name:'',phone:'',birth:'',gender:'남',trainer:'인재',goal:'',regType:'신규',payMethod:'카드',start:toDateInput(TODAY),actual:'',staff:'인재',productId:'f10'})
   const [kkModal,setKkModal]=useState(null)
   const selProd=PRODUCTS.find(p=>p.id===form.productId)||PRODUCTS[3]
@@ -15,9 +16,9 @@ export default function PTContract({role, myTrainer}) {
   const actual=parseInt(form.actual)||selProd.price
   const discount=selProd.price-actual
   const visibleMembers = isOwner ? members : members.filter(m=>m.trainer===myTrainer)
-  const openNew=()=>{setForm({name:'',phone:'',birth:'',gender:'남',trainer:isOwner?'인재':myTrainer,goal:'',regType:'신규',payMethod:'카드',start:toDateInput(TODAY),actual:'',staff:isOwner?'인재':myTrainer,productId:'f10'});setCur(null);setRenewMode(false);setView('form')}
-  const openEdit=m=>{setForm({name:m.name,phone:m.phone,birth:m.birth,gender:m.gender,trainer:m.trainer,goal:m.goal||'',regType:m.regType,payMethod:m.payMethod,start:toDateInput(m.start),actual:m.actual,staff:m.staff,productId:m.product.id});setCur(m);setRenewMode(false);setView('form')}
-  const openRenew=m=>{setForm({name:m.name,phone:m.phone,birth:m.birth,gender:m.gender,trainer:m.trainer,goal:m.goal||'',regType:'재등록',payMethod:m.payMethod,start:toDateInput(TODAY),actual:'',staff:m.staff,productId:m.product.id});setCur(m);setRenewMode(true);setView('form')}
+  const openNew=()=>{setForm({name:'',phone:'',birth:'',gender:'남',trainer:isOwner?'인재':myTrainer,goal:'',regType:'신규',payMethod:'카드',start:toDateInput(TODAY),actual:'',staff:isOwner?'인재':myTrainer,productId:'f10'});setCur(null);setRenewMode(false);setEditContractId(null);setView('form')}
+  const openRenew=m=>{setForm({name:m.name,phone:m.phone,birth:m.birth,gender:m.gender,trainer:m.trainer,goal:m.goal||'',regType:'재등록',payMethod:m.payMethod,start:toDateInput(TODAY),actual:'',staff:m.staff,productId:m.product.id});setCur(m);setRenewMode(true);setEditContractId(null);setView('form')}
+  const openEditContract=(m,c)=>{setForm({name:m.name,phone:m.phone,birth:m.birth,gender:m.gender,trainer:m.trainer,goal:m.goal||'',regType:c.regType,payMethod:c.payMethod,start:toDateInput(c.start),actual:c.actual,staff:c.staff,productId:c.product.id});setCur(m);setRenewMode(false);setEditContractId(c.id);setView('form')}
   const saveForm=()=>{
     const p=form.start.split('-'); const sd=new Date(+p[0],+p[1]-1,+p[2])
     if(cur&&renewMode){
@@ -27,10 +28,17 @@ export default function PTContract({role, myTrainer}) {
       setRenewMode(false); setView('preview'); setCur(nm)
       return
     }
-    const updatedContract={id:cur&&cur.contracts&&cur.contracts.length?cur.contracts[cur.contracts.length-1].id:'c'+Date.now(),product:selProd,regType:form.regType,payMethod:form.payMethod,start:sd,actual,staff:form.staff}
-    const contracts=cur&&cur.contracts&&cur.contracts.length?[...cur.contracts.slice(0,-1),updatedContract]:[updatedContract]
-    const nm={id:cur?cur.id:Date.now(),name:form.name||'홍길동',phone:form.phone||'010-0000-0000',birth:form.birth,gender:form.gender,trainer:form.trainer,goal:form.goal,product:selProd,regType:form.regType,payMethod:form.payMethod,start:sd,actual:actual,staff:form.staff,contracts}
-    setMembers(ms=>cur?ms.map(m=>m.id===cur.id?nm:m):[...ms,nm])
+    if(cur&&editContractId){
+      const isLatest=cur.contracts[cur.contracts.length-1].id===editContractId
+      const contracts=cur.contracts.map(c=>c.id===editContractId?{...c,product:selProd,regType:form.regType,payMethod:form.payMethod,start:sd,actual,staff:form.staff}:c)
+      const nm={...cur,name:form.name||cur.name,phone:form.phone||cur.phone,birth:form.birth,gender:form.gender,trainer:form.trainer,goal:form.goal,contracts,...(isLatest?{product:selProd,regType:form.regType,payMethod:form.payMethod,start:sd,actual,staff:form.staff}:{})}
+      setMembers(ms=>ms.map(m=>m.id===cur.id?nm:m))
+      setEditContractId(null); setView('preview'); setCur(nm)
+      return
+    }
+    const newContract={id:'c'+Date.now(),product:selProd,regType:form.regType,payMethod:form.payMethod,start:sd,actual,staff:form.staff}
+    const nm={id:Date.now(),name:form.name||'홍길동',phone:form.phone||'010-0000-0000',birth:form.birth,gender:form.gender,trainer:form.trainer,goal:form.goal,product:selProd,regType:form.regType,payMethod:form.payMethod,start:sd,actual,staff:form.staff,contracts:[newContract]}
+    setMembers(ms=>[...ms,nm])
     setView('preview'); setCur(nm)
   }
   const openKk=(type)=>{
@@ -81,6 +89,7 @@ export default function PTContract({role, myTrainer}) {
         <div className="grid-2">
           <div>
             {renewMode&&<div className="card" style={{marginBottom:12,background:'var(--green-light)',color:'var(--green-dark)',fontSize:13,fontWeight:500}}>🔄 {cur.name}님 재등록 · 새 계약 추가</div>}
+            {editContractId&&<div className="card" style={{marginBottom:12,background:'var(--surface1)',color:'var(--text2)',fontSize:13,fontWeight:500}}>✏️ {cur.name}님 계약 정보 수정</div>}
             <div className="card" style={{marginBottom:12}}>
               <div style={{fontWeight:500,marginBottom:12}}>회원 정보</div>
               {[['이름','name','text','홍길동'],['연락처','phone','text','010-0000-0000'],['생년월일','birth','text','990101']].map(([l,k,t,ph])=>(
@@ -113,65 +122,60 @@ export default function PTContract({role, myTrainer}) {
               </div>
             </div>
             <div style={{display:'flex',gap:8}}>
-              <button className="btn btn-outline" style={{flex:1}} onClick={()=>{setRenewMode(false);setView(cur?'preview':'list')}}>취소</button>
+              <button className="btn btn-outline" style={{flex:1}} onClick={()=>{setRenewMode(false);setEditContractId(null);setView(cur?'preview':'list')}}>취소</button>
               <button className="btn btn-g" style={{flex:2,padding:12,fontSize:14}} onClick={saveForm}>확인</button>
             </div>
           </div>
         </div>
       )}
       {view==='preview'&&cur&&(
-        <div className="grid-2">
-          <div>
-            <div className="card" style={{padding:0,overflow:'hidden',marginBottom:12}}>
-              <div style={{background:'var(--green)',padding:'16px'}}>
-                <div style={{color:'rgba(255,255,255,.8)',fontSize:12,marginBottom:4}}>🏋️ 나우짐 · 대구 혁신도시</div>
-                <div style={{color:'#fff',fontSize:18,fontWeight:500,marginBottom:3}}>PT 이용 계약서</div>
-                <div style={{color:'rgba(255,255,255,.8)',fontSize:12}}>{fmtDate(cur.start)} 등록</div>
-              </div>
-              <div style={{padding:'14px 16px'}}>
+        <div>
+          <button onClick={()=>setView('list')} style={{background:'transparent',border:'none',color:'var(--text2)',fontSize:13,cursor:'pointer',padding:0,marginBottom:14,display:'flex',alignItems:'center',gap:4}}>← 회원목록</button>
+          <div className="grid-2">
+            <div>
+              <div className="card" style={{marginBottom:12}}>
                 <div style={{fontSize:11,fontWeight:500,color:'var(--text3)',marginBottom:8}}>회원 정보</div>
                 <div className="rrow"><span className="rl">성명</span><span className="rv">{cur.name}</span></div>
                 <div className="rrow"><span className="rl">연락처</span><span className="rv">{cur.phone}</span></div>
                 {cur.goal&&<div className="rrow"><span className="rl">운동목적</span><span className="rv">{cur.goal}</span></div>}
-                <div style={{fontSize:11,fontWeight:500,color:'var(--text3)',margin:'10px 0 8px'}}>수강 정보</div>
                 <div className="rrow"><span className="rl">담당 트레이너</span><span className="rv">{cur.trainer}</span></div>
-                <div className="rrow"><span className="rl">PT 종류</span><span className="rv">{cur.product.type==='half'?'하프PT (30분)':'일반PT (50분)'}</span></div>
-                <div className="rrow"><span className="rl">총 횟수</span><span className="rv">{cur.product.count}회 ({cur.product.weeks}주)</span></div>
-                <div className="rrow"><span className="rl">시작일</span><span className="rv">{fmtDate(cur.start)}</span></div>
-                <div className="rrow"><span className="rl">만료일</span><span className="rv">{fmtDate(addWeeks(cur.start,cur.product.weeks))}</span></div>
-                <div style={{fontSize:11,fontWeight:500,color:'var(--text3)',margin:'10px 0 8px'}}>결제 정보</div>
-                <div className="rrow"><span className="rl">등록 구분</span><span className="rv">{cur.regType}</span></div>
-                <div className="rrow"><span className="rl">결제 방법</span><span className="rv">{cur.payMethod}</span></div>
-                <div className="rrow"><span className="rl">정가</span><span className="rv">{fmt(cur.product.price)}</span></div>
-                {cur.product.price-cur.actual>0&&<div className="rrow"><span className="rl">할인</span><span className="rv">-{fmt(cur.product.price-cur.actual)}</span></div>}
-                <div style={{background:'var(--green-light)',borderRadius:'var(--radius)',padding:'10px 14px',display:'flex',justifyContent:'space-between',marginTop:10}}>
-                  <span style={{fontSize:14,color:'var(--green-dark)'}}>실결제액</span>
-                  <span style={{fontSize:20,fontWeight:500,color:'var(--green)'}}>{fmt(cur.actual)}</span>
-                </div>
               </div>
-            </div>
-            <div style={{display:'flex',gap:8,marginBottom:12}}>
-              <button className="btn btn-outline" onClick={()=>openEdit(cur)}>수정</button>
-              <button className="btn btn-outline" onClick={()=>setView('list')}>목록</button>
-            </div>
-            <button className="btn btn-g" style={{width:'100%'}} onClick={()=>openRenew(cur)}>🔄 재등록 (새 계약 추가)</button>
-            {cur.contracts&&cur.contracts.length>1&&(
-              <div className="card" style={{marginTop:12}}>
-                <div style={{fontSize:11,fontWeight:500,color:'var(--text3)',marginBottom:8}}>계약 이력 ({cur.contracts.length}건)</div>
-                {cur.contracts.slice().reverse().map((c,i)=>(
-                  <div key={c.id} className="rrow" style={{alignItems:'flex-start'}}>
-                    <span className="rl">{c.regType} · {fmtDate(c.start)}</span>
-                    <span className="rv" style={{textAlign:'right'}}>{c.product.name}<br/><span style={{fontSize:11,color:'var(--text3)'}}>{c.payMethod} · {fmt(c.actual)}</span></span>
+              {cur.contracts.slice().reverse().map(c=>{
+                const expire=addWeeks(c.start,c.product.weeks)
+                const isLatest=c.id===cur.contracts[cur.contracts.length-1].id
+                return (
+                  <div key={c.id} className="card" style={{padding:0,overflow:'hidden',marginBottom:12}}>
+                    <div style={{background:'var(--green)',padding:'16px',position:'relative'}}>
+                      <button onClick={()=>openEditContract(cur,c)} style={{position:'absolute',top:12,right:12,background:'rgba(255,255,255,.22)',border:'none',borderRadius:8,color:'#fff',fontSize:12,padding:'5px 10px',cursor:'pointer'}}>수정</button>
+                      <div style={{color:'rgba(255,255,255,.8)',fontSize:12,marginBottom:4,paddingRight:50}}>🏋️ 나우짐 · 대구 혁신도시{isLatest?' · 현재 계약':''}</div>
+                      <div style={{color:'#fff',fontSize:18,fontWeight:500,marginBottom:3}}>PT 이용 계약서</div>
+                      <div style={{color:'rgba(255,255,255,.8)',fontSize:12}}>{fmtDate(c.start)} 등록</div>
+                    </div>
+                    <div style={{padding:'14px 16px'}}>
+                      <div className="rrow"><span className="rl">PT 종류</span><span className="rv">{c.product.type==='half'?'하프PT (30분)':'일반PT (50분)'}</span></div>
+                      <div className="rrow"><span className="rl">총 횟수</span><span className="rv">{c.product.count}회 ({c.product.weeks}주)</span></div>
+                      <div className="rrow"><span className="rl">시작일</span><span className="rv">{fmtDate(c.start)}</span></div>
+                      <div className="rrow"><span className="rl">만료일</span><span className="rv">{fmtDate(expire)}</span></div>
+                      <div className="rrow"><span className="rl">등록 구분</span><span className="rv">{c.regType}</span></div>
+                      <div className="rrow"><span className="rl">결제 방법</span><span className="rv">{c.payMethod}</span></div>
+                      <div className="rrow"><span className="rl">정가</span><span className="rv">{fmt(c.product.price)}</span></div>
+                      {c.product.price-c.actual>0&&<div className="rrow"><span className="rl">할인</span><span className="rv">-{fmt(c.product.price-c.actual)}</span></div>}
+                      <div style={{background:'var(--green-light)',borderRadius:'var(--radius)',padding:'10px 14px',display:'flex',justifyContent:'space-between',marginTop:10}}>
+                        <span style={{fontSize:14,color:'var(--green-dark)'}}>실결제액</span>
+                        <span style={{fontSize:20,fontWeight:500,color:'var(--green)'}}>{fmt(c.actual)}</span>
+                      </div>
+                    </div>
                   </div>
-                ))}
+                )
+              })}
+            </div>
+            <div>
+              <div style={{display:'flex',flexDirection:'column',gap:8}}>
+                <button className="btn btn-g" style={{padding:13,fontSize:14,fontWeight:700,borderRadius:'var(--radius)',marginBottom:8}} onClick={()=>openRenew(cur)}>🔄 재등록 (새 계약 추가)</button>
+                <button className="btn btn-kk" style={{padding:13,fontSize:14,fontWeight:700,borderRadius:'var(--radius)',marginBottom:8}} onClick={()=>openKk('contract')}>💬 가입서 카카오 발송</button>
+                <button className="btn btn-kk" style={{padding:13,fontSize:14,fontWeight:700,borderRadius:'var(--radius)',marginBottom:8}} onClick={()=>openKk('receipt')}>💬 결제내역 카카오 발송</button>
+                <button style={{padding:13,fontSize:14,fontWeight:700,borderRadius:'var(--radius)',background:'#f0b800',border:'none',cursor:'pointer'}} onClick={()=>openKk('both')}>💬 가입서 + 결제내역 동시 발송</button>
               </div>
-            )}
-          </div>
-          <div>
-            <div style={{display:'flex',flexDirection:'column',gap:8}}>
-              <button className="btn btn-kk" style={{padding:13,fontSize:14,fontWeight:700,borderRadius:'var(--radius)',marginBottom:8}} onClick={()=>openKk('contract')}>💬 가입서 카카오 발송</button>
-              <button className="btn btn-kk" style={{padding:13,fontSize:14,fontWeight:700,borderRadius:'var(--radius)',marginBottom:8}} onClick={()=>openKk('receipt')}>💬 결제내역 카카오 발송</button>
-              <button style={{padding:13,fontSize:14,fontWeight:700,borderRadius:'var(--radius)',background:'#f0b800',border:'none',cursor:'pointer'}} onClick={()=>openKk('both')}>💬 가입서 + 결제내역 동시 발송</button>
             </div>
           </div>
         </div>
