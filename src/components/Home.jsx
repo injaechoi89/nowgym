@@ -6,7 +6,7 @@ import { useSyncedState } from '../useSyncedState.js'
 import { getCertPhotos, subscribeCertPhotos } from '../photoUtils.js'
 import { TYPES, TYPE_LABEL, DOT_COLOR, MONTHLY_TARGET } from './Task.jsx'
 
-export default function Home({role, myTrainer, onNavigate}) {
+export default function Home({role, myTrainer, onNavigate, onOpenTodayTask}) {
   const isOwner = role==='원장님'
   const curKey = SALES_MONTH_KEYS[SALES_MONTH_KEYS.length-1]
   const prevKey = SALES_MONTH_KEYS[SALES_MONTH_KEYS.length-2]
@@ -82,7 +82,7 @@ export default function Home({role, myTrainer, onNavigate}) {
           <div className="card" style={{cursor:'pointer',marginBottom:16}} onClick={()=>onNavigate&&onNavigate('task')}>
             <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',gap:10,marginBottom:14}}>
               <div className="card-title" style={{marginBottom:0}}>과업 인증 · {ML[TODAY.getMonth()]} 진행률</div>
-              <button className="btn btn-g" style={{padding:'6px 14px',fontSize:12,flexShrink:0}} onClick={()=>onNavigate&&onNavigate('task')}>오늘 과업 인증</button>
+              <button className="btn btn-g" style={{padding:'6px 14px',fontSize:12,flexShrink:0}} onClick={e=>{e.stopPropagation();onOpenTodayTask&&onOpenTodayTask()}}>오늘 과업 인증</button>
             </div>
             <div style={{display:'flex',gap:14,flexWrap:'wrap'}}>
               {taskProgress.map(({t,done,target,pct})=>(

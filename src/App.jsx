@@ -32,6 +32,7 @@ export default function App() {
   const [page, setPage] = useLocalStorage('nowgym-page', 'home')
   const [mobileNavOpen, setMobileNavOpen] = useState(false)
   const [diaryJump, setDiaryJump] = useState(null)
+  const [taskJump, setTaskJump] = useState(null)
 
   if (!auth) {
     return <Login onLogin={(identity) => setAuth({identity})} />
@@ -54,6 +55,11 @@ export default function App() {
   const goToDiary = (jump) => {
     setDiaryJump(jump)
     setPage('diary')
+  }
+
+  const goToTodayTask = () => {
+    setTaskJump(Date.now())
+    setPage('task')
   }
 
   const logout = () => {
@@ -95,7 +101,7 @@ export default function App() {
           </div>
         </div>
         <div className="content">
-          <Page role={role} myTrainer={myTrainer} onOpenDiary={goToDiary} diaryJump={diaryJump} onDiaryJumpHandled={()=>setDiaryJump(null)} onNavigate={goPage} />
+          <Page role={role} myTrainer={myTrainer} onOpenDiary={goToDiary} diaryJump={diaryJump} onDiaryJumpHandled={()=>setDiaryJump(null)} onNavigate={goPage} onOpenTodayTask={goToTodayTask} taskJump={taskJump} onTaskJumpHandled={()=>setTaskJump(null)} />
         </div>
       </div>
     </div>

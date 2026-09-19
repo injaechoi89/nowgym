@@ -63,7 +63,7 @@ function MonthRing({pct}) {
   )
 }
 
-export default function Task({role, myTrainer}) {
+export default function Task({role, myTrainer, taskJump, onTaskJumpHandled}) {
   const isOwner = role==='원장님'
   const [trainer, setTrainer] = useState('정우')
   const effectiveTrainer = isOwner ? trainer : myTrainer
@@ -117,6 +117,14 @@ export default function Task({role, myTrainer}) {
     if (isFutureDate(y,m,d)) return
     setModal({k: toKey(y,m,d), y, m, d})
   }
+
+  useEffect(() => {
+    if (!taskJump) return
+    setYear(TODAY.getFullYear()); setMonth(TODAY.getMonth()); setTab('month')
+    openDay(TODAY.getFullYear(), TODAY.getMonth(), TODAY.getDate())
+    onTaskJumpHandled && onTaskJumpHandled()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [taskJump])
 
   const pickFile = (type) => {
     const input = fileInputs.current[type]
