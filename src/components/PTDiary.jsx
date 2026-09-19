@@ -44,7 +44,11 @@ export default function PTDiary({role, myTrainer, diaryJump, onDiaryJumpHandled}
   const fd=new Date(year,month,1).getDay(); const dim=new Date(year,month+1,0).getDate()
   const changeMonth=d=>{let m=month+d,y=year;if(m>11){m=0;y++}if(m<0){m=11;y--}setMonth(m);setYear(y)}
   const togglePart=p=>setWParts(ps=>ps.includes(p)?ps.filter(x=>x!==p):[...ps,p])
-  const addEx=ex=>{setWExs(es=>[...es,{name:ex.name,memo:'',sets:[{w:'',r:'',u:''}]}]);setExModal(false)}
+  const addEx=ex=>{
+    setWExs(es=>[...es,{name:ex.name,memo:'',sets:[{w:'',r:'',u:''}]}])
+    if(ex.category)setWParts(ps=>ps.includes(ex.category)?ps:[...ps,ex.category])
+    setExModal(false)
+  }
   const prevRecordFor=exName=>{
     const sorted=memberLogs.filter(l=>!(selLog&&l.id===selLog.id)).slice().sort((a,b)=>b.date-a.date)
     for(const l of sorted){
