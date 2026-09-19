@@ -3,10 +3,11 @@ import { IDENTITIES, setPin } from '../auth.js'
 import { getHolBonusSettings, setHolBonusSettings, subscribeHolBonusSettings } from '../holSettings.js'
 import { getPtHoursSettings, setPtHoursSettings, subscribePtHoursSettings } from '../ptHoursSettings.js'
 import { useSyncedState } from '../useSyncedState.js'
-import { EXERCISES_INIT } from '../data.js'
+import { EXERCISES_INIT, PRODUCTS_INIT } from '../data.js'
 import { readFileAsDataUrl, processImage } from '../photoUtils.js'
 
 const emptyExForm = () => ({id:null,category:'',name:'',desc:'',imageUrl:'',videoUrl:''})
+const emptyProdForm = () => ({id:null,type:'full',name:'',count:'',weeks:'',price:''})
 
 export default function Settings({ role, myTrainer }) {
   const isOwner = role === '원장님'
@@ -20,6 +21,8 @@ export default function Settings({ role, myTrainer }) {
   const [exercises, setExercises] = useSyncedState('nowgym-exercises', EXERCISES_INIT)
   const [exForm, setExForm] = useState(null)
   const [exUploading, setExUploading] = useState(false)
+  const [products, setProducts] = useSyncedState('nowgym-pt-products', PRODUCTS_INIT)
+  const [prodForm, setProdForm] = useState(null)
 
   useEffect(() => subscribeHolBonusSettings(setHolSettingsState), [])
   useEffect(() => subscribePtHoursSettings(setPtHoursState), [])
@@ -73,6 +76,19 @@ export default function Settings({ role, myTrainer }) {
   const deleteEx = (id) => {
     if (!window.confirm('이 운동 종목을 삭제할까요?')) return
     setExercises(list => list.filter(x => x.id !== id))
+  }
+
+  const openNewProd = () => setProdForm(emptyProdForm())
+  const openEditProd = (p) => setProdForm({...p})
+  const saveProd = () => {
+    const name = prodForm.name.trim()
+    const count = parseInt(prodForm.count)
+    const weeks = parseInt(prodForm.weeks)
+    const price = parseInt(prodForm.price)
+    if (!name || !count || !weeks || !price) { alert('상품명·횟수·기간·가격을 모두 입력해주세요'); return }
+    const np = {id: prodForm.id || 'p'+Date.now(), type: prodForm.type, name, count, weeks, price}
+    setProducts(list => prodForm.id ? list.map(x => x.id === prodForm.id ? np : x) : [...list, np])
+    setProdForm(null)
   }
 
   return (
@@ -142,6 +158,57 @@ export default function Settings({ role, myTrainer }) {
       </div>
       {isOwner ? (
         <>
+          <div className="card" style={{marginBottom:14}}>
+            <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',gap:10}}>
+              <div className="card-title" style={{marginBottom:0}}>PT 상품 관리</div>
+              <button className="btn btn-g" style={{padding:'6px 14px',fontSize:12,flexShrink:0}} onClick={openNewProd}>+ 상품 추가</button>
+            </div>
+            <p style={{fontSize:13,color:'var(--text3)',margin:'6px 0 14px'}}>
+              PT 가입/재등록 시 선택할 수 있는 상품입니다. 종류·횟수·기간·가격을 등록/수정할 수 있어요.
+            </p>
+            {products.map(p => (
+              <div key={p.id} className="rrow" style={{gap:8}}>
+                <span style={{fontSize:10,padding:'2px 7px',borderRadius:8,background:p.type==='half'?'#FBEAF0':'#E6F1FB',color:p.type==='half'?'#712B13':'#042C53',flexShrink:0}}>{p.type==='half'?'하프 30분':'일반 50분'}</span>
+                <span style={{flex:1,fontSize:13}}>{p.name}</span>
+                <span style={{fontSize:12,color:'var(--text3)'}}>{p.count}회 · {p.weeks}주 · {p.price.toLocaleString()}원</span>
+                <button className="btn btn-outline" style={{padding:'5px 10px',fontSize:12}} onClick={()=>openEditProd(p)}>수정</button>
+              </div>
+            ))}
+            {prodForm && (
+              <div className="modal-backdrop" onClick={e=>e.target===e.currentTarget&&setProdForm(null)}>
+                <div className="modal">
+                  <div className="modal-title">{prodForm.id ? 'PT 상품 수정' : 'PT 상품 추가'}</div>
+                  <div style={{marginBottom:10}}>
+                    <label style={{fontSize:12,color:'var(--text3)',display:'block',marginBottom:4}}>PT 종류</label>
+                    <div style={{display:'flex',gap:8}}>
+                      <button style={{flex:1,padding:'8px 4px',border:'1.5px solid '+(prodForm.type==='half'?'#D4537E':'var(--border)'),borderRadius:'var(--radius)',background:prodForm.type==='half'?'#FBEAF0':'transparent',color:prodForm.type==='half'?'#712B13':'var(--text2)',fontSize:12,fontWeight:500,cursor:'pointer'}} onClick={()=>setProdForm(f=>({...f,type:'half'}))}>하프PT (30분)</button>
+                      <button style={{flex:1,padding:'8px 4px',border:'1.5px solid '+(prodForm.type==='full'?'#378ADD':'var(--border)'),borderRadius:'var(--radius)',background:prodForm.type==='full'?'#E6F1FB':'transparent',color:prodForm.type==='full'?'#042C53':'var(--text2)',fontSize:12,fontWeight:500,cursor:'pointer'}} onClick={()=>setProdForm(f=>({...f,type:'full'}))}>일반PT (50분)</button>
+                    </div>
+                  </div>
+                  <div style={{marginBottom:10}}>
+                    <label style={{fontSize:12,color:'var(--text3)',display:'block',marginBottom:4}}>상품명</label>
+                    <input type="text" value={prodForm.name} onChange={e=>setProdForm(f=>({...f,name:e.target.value}))} placeholder="예: 일반PT 10회" style={{width:'100%'}}/>
+                  </div>
+                  <div style={{marginBottom:10}}>
+                    <label style={{fontSize:12,color:'var(--text3)',display:'block',marginBottom:4}}>횟수</label>
+                    <input type="number" value={prodForm.count} onChange={e=>setProdForm(f=>({...f,count:e.target.value}))} placeholder="예: 10" style={{width:'100%'}}/>
+                  </div>
+                  <div style={{marginBottom:10}}>
+                    <label style={{fontSize:12,color:'var(--text3)',display:'block',marginBottom:4}}>과정 기간(주)</label>
+                    <input type="number" value={prodForm.weeks} onChange={e=>setProdForm(f=>({...f,weeks:e.target.value}))} placeholder="예: 5" style={{width:'100%'}}/>
+                  </div>
+                  <div style={{marginBottom:14}}>
+                    <label style={{fontSize:12,color:'var(--text3)',display:'block',marginBottom:4}}>가격(원)</label>
+                    <input type="number" value={prodForm.price} onChange={e=>setProdForm(f=>({...f,price:e.target.value}))} placeholder="예: 600000" style={{width:'100%'}}/>
+                  </div>
+                  <div className="modal-btns">
+                    <button className="btn btn-outline" onClick={()=>setProdForm(null)}>취소</button>
+                    <button className="btn btn-g" onClick={saveProd}>저장</button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
           <div className="card" style={{marginBottom:14}}>
             <div className="card-title">PT 시간표 운영시간</div>
             <p style={{fontSize:13,color:'var(--text3)',marginBottom:14}}>

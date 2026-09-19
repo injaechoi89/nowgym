@@ -1,16 +1,17 @@
 import {useState} from 'react'
 import {useSyncedState} from '../useSyncedState.js'
-import {TODAY,TRAINERS,PRODUCTS,PT_MEMBERS_INIT,WD,fmt,fmtDate,toDateInput,addWeeks} from '../data.js'
+import {TODAY,TRAINERS,PRODUCTS_INIT,PT_MEMBERS_INIT,WD,fmt,fmtDate,toDateInput,addWeeks} from '../data.js'
 export default function PTContract({role, myTrainer}) {
   const isOwner = role==='원장님'
   const [members,setMembers]=useSyncedState('nowgym-pt-members', PT_MEMBERS_INIT)
+  const [products]=useSyncedState('nowgym-pt-products', PRODUCTS_INIT)
   const [view,setView]=useState('list')
   const [cur,setCur]=useState(null)
   const [renewMode,setRenewMode]=useState(false)
   const [editContractId,setEditContractId]=useState(null)
   const [form,setForm]=useState({name:'',phone:'',birth:'',gender:'남',trainer:'인재',goal:'',regType:'신규',payMethod:'카드',start:toDateInput(TODAY),actual:'',staff:'인재',productId:'f10'})
   const [kkModal,setKkModal]=useState(null)
-  const selProd=PRODUCTS.find(p=>p.id===form.productId)||PRODUCTS[3]
+  const selProd=products.find(p=>p.id===form.productId)||products[3]||products[0]
   const startDate=form.start?new Date(form.start):TODAY
   const expireDate=addWeeks(startDate,selProd.weeks)
   const actual=parseInt(form.actual)||selProd.price
@@ -129,7 +130,7 @@ export default function PTContract({role, myTrainer}) {
             <div className="card" style={{marginBottom:12}}>
               <div style={{fontWeight:500,marginBottom:12}}>PT 상품 선택</div>
               <div style={{display:'grid',gridTemplateColumns:'repeat(2,1fr)',gap:8}}>
-                {PRODUCTS.map(p=>(
+                {products.map(p=>(
                   <button key={p.id} style={{border:'1.5px solid '+(form.productId===p.id?'var(--green)':'var(--border)'),borderRadius:10,padding:'10px 8px',background:form.productId===p.id?'var(--green-light)':'transparent',cursor:'pointer',textAlign:'left'}} onClick={()=>{setForm(f=>({...f,productId:p.id,actual:''}))}}>
                     <span style={{fontSize:10,padding:'2px 7px',borderRadius:8,background:p.type==='half'?'#FBEAF0':'#E6F1FB',color:p.type==='half'?'#712B13':'#042C53',display:'inline-block',marginBottom:4}}>{p.type==='half'?'하프 30분':'일반 50분'}</span>
                     <div style={{fontSize:13,fontWeight:500,marginBottom:2}}>{p.count}회권</div>

@@ -26,7 +26,7 @@ export const EX_CATEGORIES = {
 };
 export const EXERCISES_INIT = Object.entries(EX_CATEGORIES).flatMap(([cat,names])=>names.map((name,i)=>({id:`${cat}-${i}`,category:cat,name,desc:'',imageUrl:'',videoUrl:'',createdBy:'원장님'})))
 export const PT_HOURS = ['09:00','09:30','10:00','10:30','11:00','11:30','12:00','12:30','13:00','13:30','14:00','14:30','15:00','15:30','16:00','16:30','17:00','17:30','18:00','18:30','19:00'];
-export const PRODUCTS = [
+export const PRODUCTS_INIT = [
   {id:'h10',type:'half',name:'하프PT 10회',count:10,weeks:5,price:450000},
   {id:'h20',type:'half',name:'하프PT 20회',count:20,weeks:10,price:850000},
   {id:'h30',type:'half',name:'하프PT 30회',count:30,weeks:15,price:1200000},
@@ -35,9 +35,9 @@ export const PRODUCTS = [
   {id:'f30',type:'full',name:'일반PT 30회',count:30,weeks:15,price:1500000},
 ];
 export const PT_MEMBERS_INIT=[
-  {id:1,name:'홍길동',phone:'010-1234-5678',birth:'930315',gender:'남',trainer:'인재',goal:'체지방 감량',product:PRODUCTS[3],regType:'재등록',payMethod:'카드',start:new Date(2026,8,1),actual:600000,staff:'인재'},
-  {id:2,name:'김민지',phone:'010-2345-6789',birth:'980520',gender:'여',trainer:'인재',goal:'체력 향상',product:PRODUCTS[0],regType:'신규',payMethod:'카드',start:new Date(2026,7,11),actual:450000,staff:'인재'},
-  {id:3,name:'오소연',phone:'010-5678-9012',birth:'951130',gender:'여',trainer:'정우',goal:'다이어트',product:PRODUCTS[4],regType:'신규',payMethod:'카드',start:new Date(2026,6,7),actual:1100000,staff:'정우'},
+  {id:1,name:'홍길동',phone:'010-1234-5678',birth:'930315',gender:'남',trainer:'인재',goal:'체지방 감량',product:PRODUCTS_INIT[3],regType:'재등록',payMethod:'카드',start:new Date(2026,8,1),actual:600000,staff:'인재'},
+  {id:2,name:'김민지',phone:'010-2345-6789',birth:'980520',gender:'여',trainer:'인재',goal:'체력 향상',product:PRODUCTS_INIT[0],regType:'신규',payMethod:'카드',start:new Date(2026,7,11),actual:450000,staff:'인재'},
+  {id:3,name:'오소연',phone:'010-5678-9012',birth:'951130',gender:'여',trainer:'정우',goal:'다이어트',product:PRODUCTS_INIT[4],regType:'신규',payMethod:'카드',start:new Date(2026,6,7),actual:1100000,staff:'정우'},
 ].map(m=>({...m,contracts:[{id:'c'+m.id,product:m.product,regType:m.regType,payMethod:m.payMethod,start:m.start,actual:m.actual,staff:m.staff}]}))
 export function getTier(tiers,val){let r=tiers[0];for(let t of tiers){if(val>=t[0])r=t;else break;}return r;}
 export function fmt(n){return Math.round(n).toLocaleString('ko-KR')+'원';}
