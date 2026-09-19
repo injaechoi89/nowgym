@@ -3,11 +3,17 @@ import { IDENTITIES, setPin } from '../auth.js'
 import { getHolBonusSettings, setHolBonusSettings, subscribeHolBonusSettings } from '../holSettings.js'
 import { getPtHoursSettings, setPtHoursSettings, subscribePtHoursSettings } from '../ptHoursSettings.js'
 import { useSyncedState } from '../useSyncedState.js'
-import { EXERCISES_INIT, PRODUCTS_INIT } from '../data.js'
+import { EXERCISES_INIT, PRODUCTS_INIT, TRAINERS, SALARY_POLICY_INIT } from '../data.js'
 import { readFileAsDataUrl, processImage } from '../photoUtils.js'
 
 const emptyExForm = () => ({id:null,category:'',name:'',desc:'',imageUrl:'',videoUrl:''})
 const emptyProdForm = () => ({id:null,type:'full',name:'',count:'',weeks:'',price:''})
+const emptySalaryForm = () => ({
+  id: null,
+  effectiveFrom: '',
+  base: Object.fromEntries(TRAINERS.map(t=>[t.name, ''])),
+  taskInsen: Object.fromEntries(TRAINERS.map(t=>[t.name, ''])),
+})
 
 export default function Settings({ role, myTrainer }) {
   const isOwner = role === '원장님'
@@ -23,6 +29,8 @@ export default function Settings({ role, myTrainer }) {
   const [exUploading, setExUploading] = useState(false)
   const [products, setProducts] = useSyncedState('nowgym-pt-products', PRODUCTS_INIT)
   const [prodForm, setProdForm] = useState(null)
+  const [salaryPolicies, setSalaryPolicies] = useSyncedState('nowgym-salary-policy', SALARY_POLICY_INIT)
+  const [salaryForm, setSalaryForm] = useState(null)
 
   useEffect(() => subscribeHolBonusSettings(setHolSettingsState), [])
   useEffect(() => subscribePtHoursSettings(setPtHoursState), [])
@@ -94,6 +102,30 @@ export default function Settings({ role, myTrainer }) {
     if (products.length <= 1) { alert('최소 1개의 PT 상품은 남아있어야 해요.'); return }
     if (!window.confirm('이 PT 상품을 삭제할까요?')) return
     setProducts(list => list.filter(x => x.id !== id))
+  }
+
+  const openNewSalaryPolicy = () => setSalaryForm(emptySalaryForm())
+  const openEditSalaryPolicy = (p) => setSalaryForm({
+    id: p.id,
+    effectiveFrom: p.effectiveFrom,
+    base: Object.fromEntries(TRAINERS.map(t => [t.name, p.base[t.name] ?? ''])),
+    taskInsen: Object.fromEntries(TRAINERS.map(t => [t.name, p.taskInsen[t.name] ?? ''])),
+  })
+  const saveSalaryPolicy = () => {
+    if (!salaryForm.effectiveFrom) { alert('적용 시작월을 선택해주세요'); return }
+    const base = {}, taskInsen = {}
+    for (const t of TRAINERS) {
+      base[t.name] = parseInt(salaryForm.base[t.name]) || 0
+      taskInsen[t.name] = parseInt(salaryForm.taskInsen[t.name]) || 0
+    }
+    const np = { id: salaryForm.id || 'sp'+Date.now(), effectiveFrom: salaryForm.effectiveFrom, base, taskInsen }
+    setSalaryPolicies(list => [...list.filter(p => p.id !== np.id && p.effectiveFrom !== np.effectiveFrom), np])
+    setSalaryForm(null)
+  }
+  const deleteSalaryPolicy = (id) => {
+    if (salaryPolicies.length <= 1) { alert('최소 1개의 급여 기준은 남아있어야 해요.'); return }
+    if (!window.confirm('이 급여 기준을 삭제할까요?')) return
+    setSalaryPolicies(list => list.filter(x => x.id !== id))
   }
 
   const [tab, setTab] = useState('exercises')
@@ -218,6 +250,58 @@ export default function Settings({ role, myTrainer }) {
                   <div className="modal-btns">
                     <button className="btn btn-outline" onClick={()=>setProdForm(null)}>취소</button>
                     <button className="btn btn-g" onClick={saveProd}>저장</button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+          <div className="card" style={{marginBottom:14}}>
+            <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',gap:10}}>
+              <div className="card-title" style={{marginBottom:0}}>트레이너 급여 관리</div>
+              <button className="btn btn-g" style={{padding:'6px 14px',fontSize:12,flexShrink:0}} onClick={openNewSalaryPolicy}>+ 급여 변경 추가</button>
+            </div>
+            <p style={{fontSize:13,color:'var(--text3)',margin:'6px 0 14px'}}>
+              트레이너별 기본급·과업 인센티브입니다. 새로 추가하면 지정한 달부터 적용되고, 그 이전 달의 급여 정산은 그때 적용되던 값을 그대로 사용해요.
+            </p>
+            {salaryPolicies.slice().sort((a,b)=>b.effectiveFrom.localeCompare(a.effectiveFrom)).map(p => (
+              <div key={p.id} style={{border:'0.5px solid var(--border)',borderRadius:'var(--radius)',marginBottom:10,overflow:'hidden'}}>
+                <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',fontSize:12,fontWeight:600,color:'var(--green-dark)',background:'var(--green-light)',padding:'6px 12px'}}>
+                  <span>{p.effectiveFrom.slice(0,4)}년 {+p.effectiveFrom.slice(5)}월부터 적용</span>
+                  <div style={{display:'flex',gap:6}}>
+                    <button className="btn btn-outline" style={{padding:'3px 9px',fontSize:11,background:'var(--surface)'}} onClick={()=>openEditSalaryPolicy(p)}>수정</button>
+                    <button className="btn btn-danger" style={{padding:'3px 9px',fontSize:11}} onClick={()=>deleteSalaryPolicy(p.id)}>삭제</button>
+                  </div>
+                </div>
+                <div style={{padding:'8px 12px'}}>
+                  {TRAINERS.map(t=>(
+                    <div key={t.name} className="rrow" style={{fontSize:12}}>
+                      <span className="rl">{t.name}</span>
+                      <span className="rv">기본급 {(p.base[t.name]||0).toLocaleString()}원 · 과업 {(p.taskInsen[t.name]||0).toLocaleString()}원</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+            {salaryForm && (
+              <div className="modal-backdrop" onClick={e=>e.target===e.currentTarget&&setSalaryForm(null)}>
+                <div className="modal">
+                  <div className="modal-title">{salaryForm.id ? '급여 기준 수정' : '급여 변경 추가'}</div>
+                  <div style={{marginBottom:12}}>
+                    <label style={{fontSize:12,color:'var(--text3)',display:'block',marginBottom:4}}>적용 시작월</label>
+                    <input type="month" value={salaryForm.effectiveFrom} onChange={e=>setSalaryForm(f=>({...f,effectiveFrom:e.target.value}))} style={{width:'100%'}}/>
+                  </div>
+                  {TRAINERS.map(t=>(
+                    <div key={t.name} style={{marginBottom:10}}>
+                      <label style={{fontSize:12,color:'var(--text3)',display:'block',marginBottom:4}}>{t.name}</label>
+                      <div style={{display:'flex',gap:8}}>
+                        <input type="number" value={salaryForm.base[t.name]} onChange={e=>setSalaryForm(f=>({...f,base:{...f.base,[t.name]:e.target.value}}))} placeholder="기본급" style={{flex:1}}/>
+                        <input type="number" value={salaryForm.taskInsen[t.name]} onChange={e=>setSalaryForm(f=>({...f,taskInsen:{...f.taskInsen,[t.name]:e.target.value}}))} placeholder="과업 인센티브" style={{flex:1}}/>
+                      </div>
+                    </div>
+                  ))}
+                  <div className="modal-btns">
+                    <button className="btn btn-outline" onClick={()=>setSalaryForm(null)}>취소</button>
+                    <button className="btn btn-g" onClick={saveSalaryPolicy}>저장</button>
                   </div>
                 </div>
               </div>

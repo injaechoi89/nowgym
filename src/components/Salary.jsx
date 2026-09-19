@@ -1,6 +1,6 @@
 import {useState} from 'react'
 import {useSyncedState} from '../useSyncedState.js'
-import {TRAINERS,STAFF_BASE,TASK_INSEN_BY_TRAINER,MT,QT,ML,HOL_RECORDS_INIT,getTier,fmt,fmtM,sumHolidayBonus,PT_INSEN_TRAINERS,ptInsenGroupTotal,ptInsenFor,PT_INSEN_THRESHOLD} from '../data.js'
+import {TRAINERS,SALARY_POLICY_INIT,salaryPolicyFor,MT,QT,ML,HOL_RECORDS_INIT,getTier,fmt,fmtM,sumHolidayBonus,PT_INSEN_TRAINERS,ptInsenGroupTotal,ptInsenFor,PT_INSEN_THRESHOLD} from '../data.js'
 import {useLiveSales} from '../useLiveSales.js'
 
 function getQInsen(key,sales){
@@ -20,11 +20,13 @@ export default function Salary({role, myTrainer}) {
   const isOwner = role==='원장님'
   const visibleTrainers = isOwner ? TRAINERS : TRAINERS.filter(t=>t.name===myTrainer)
   const [holRecs] = useSyncedState('nowgym-holiday-work', HOL_RECORDS_INIT)
+  const [salaryPolicies] = useSyncedState('nowgym-salary-policy', SALARY_POLICY_INIT)
   const {monthSales:MONTH_SALES, monthKeys:SALES_MONTH_KEYS} = useLiveSales()
   const [idx, setIdx] = useState(SALES_MONTH_KEYS.length-1)
   const key = SALES_MONTH_KEYS[idx]
   const [year,monthStr] = key.split('-'); const month = +monthStr
   const d = MONTH_SALES[key]
+  const policy = salaryPolicyFor(key, salaryPolicies)
   const totalManwon = Math.round(d.total/10000)
   const mi = getTier(MT,totalManwon)[1]
   const qInfo = getQInsen(key,MONTH_SALES)
@@ -41,8 +43,8 @@ export default function Salary({role, myTrainer}) {
       </div>
       <div className="grid-2">
         {visibleTrainers.map(tr=>{
-          const base=STAFF_BASE[tr.name]||1300000
-          const taskInsen=TASK_INSEN_BY_TRAINER[tr.name]??400000
+          const base=policy.base[tr.name]||1300000
+          const taskInsen=policy.taskInsen[tr.name]??400000
           const fixed=base+taskInsen
           const ptAmt=d.trainer[tr.name]||0
           const ptEligible=PT_INSEN_TRAINERS.includes(tr.name)
@@ -57,7 +59,7 @@ export default function Salary({role, myTrainer}) {
                 <div style={{color:'#fff',fontSize:24,fontWeight:600}}>{fmt(total)}</div>
               </div>
               <div style={{padding:'10px 16px'}}>
-                <div style={{fontSize:11,fontWeight:500,color:'var(--text3)',padding:'6px 0 3px'}}>고정급</div>
+                <div style={{fontSize:11,fontWeight:500,color:'var(--text3)',padding:'6px 0 3px'}}>고정급 <span style={{fontWeight:400}}>({policy.effectiveFrom.slice(0,4)}년 {+policy.effectiveFrom.slice(5)}월~ 기준)</span></div>
                 <div className="rrow"><span className="rl">기본급</span><span className="rv">{fmt(base)}</span></div>
                 <div className="rrow"><span className="rl">과업 인센티브</span><span className="rv g">+{fmt(taskInsen)}</span></div>
                 <div style={{fontSize:11,fontWeight:500,color:'var(--text3)',padding:'6px 0 3px'}}>센터 매출 연동</div>
