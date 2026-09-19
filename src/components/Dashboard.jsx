@@ -65,7 +65,7 @@ export default function Dashboard({role}) {
       <div className="card">
         <div className="card-title">월별 매출 추이 <span style={{fontSize:11,color:'var(--text3)'}}>최근 {SALES_MONTH_KEYS.length}개월</span></div>
         <div style={{display:'flex',flexDirection:'column',gap:8}}>
-          {SALES_MONTH_KEYS.map((k,i)=>{const md=MONTH_SALES[k];const pct=Math.round(md.total/maxT*100);const [ky,km]=k.split('-');return(
+          {SALES_MONTH_KEYS.map((k,i)=>({k,i})).reverse().map(({k,i})=>{const md=MONTH_SALES[k];const pct=Math.round(md.total/maxT*100);const [ky,km]=k.split('-');return(
             <div key={k} style={{display:'flex',alignItems:'center',gap:10}}>
               <div style={{fontSize:11,color:'var(--text3)',width:52,textAlign:'right',flexShrink:0}}>{ky.slice(2)}.{km}월</div>
               <div style={{flex:1,height:22,background:'var(--surface1)',borderRadius:4,overflow:'hidden'}}>
