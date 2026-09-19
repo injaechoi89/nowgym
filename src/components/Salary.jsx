@@ -79,27 +79,6 @@ export default function Salary({role, myTrainer}) {
           </div>
         </div>
       )}
-      {isOwner && (
-        <div className="card" style={{marginBottom:16}}>
-          <div className="card-title">월별 합산 월급 추이 <span style={{fontSize:11,color:'var(--text3)'}}>정우·준혁·건호, 인재 제외</span></div>
-          <div style={{display:'flex',flexDirection:'column',gap:8}}>
-            {monthlyExcInjaeTotals.map(({mk},i)=>({mk,i})).reverse().map(({mk,i})=>{
-              const total=monthlyExcInjaeTotals[i].total
-              const pct=Math.round(total/maxMonthlyTotal*100)
-              const [ky,km]=mk.split('-')
-              return (
-                <div key={mk} style={{display:'flex',alignItems:'center',gap:10}}>
-                  <div style={{fontSize:11,color:'var(--text3)',width:52,textAlign:'right',flexShrink:0}}>{ky.slice(2)}.{km}월</div>
-                  <div style={{flex:1,height:22,background:'var(--surface1)',borderRadius:4,overflow:'hidden'}}>
-                    <div style={{height:'100%',width:pct+'%',background:i===idx?'var(--green)':'var(--blue)',borderRadius:4,display:'flex',alignItems:'center',paddingLeft:8,fontSize:10,color:'#fff',fontWeight:500}}>{pct>25?fmtM(total):''}</div>
-                  </div>
-                  <div style={{fontSize:11,color:'var(--text3)',width:48,textAlign:'right',flexShrink:0}}>{fmtM(total)}</div>
-                </div>
-              )
-            })}
-          </div>
-        </div>
-      )}
       <div className="grid-2">
         {trainerCalcs.map(({tr, base, taskInsen, ptAmt, ptEligible, ptInsen, hol, qI, total})=>{
           return (
@@ -143,6 +122,27 @@ export default function Salary({role, myTrainer}) {
           )
         })}
       </div>
+      {isOwner && (
+        <div className="card" style={{marginTop:16}}>
+          <div className="card-title">월별 합산 월급 추이 <span style={{fontSize:11,color:'var(--text3)'}}>정우·준혁·건호, 인재 제외</span></div>
+          <div style={{display:'flex',flexDirection:'column',gap:8}}>
+            {monthlyExcInjaeTotals.map(({mk},i)=>({mk,i})).reverse().map(({mk,i})=>{
+              const total=monthlyExcInjaeTotals[i].total
+              const pct=Math.round(total/maxMonthlyTotal*100)
+              const [ky,km]=mk.split('-')
+              return (
+                <div key={mk} style={{display:'flex',alignItems:'center',gap:10}}>
+                  <div style={{fontSize:11,color:'var(--text3)',width:52,textAlign:'right',flexShrink:0}}>{ky.slice(2)}.{km}월</div>
+                  <div style={{flex:1,height:22,background:'var(--surface1)',borderRadius:4,overflow:'hidden'}}>
+                    <div style={{height:'100%',width:pct+'%',background:i===idx?'var(--green)':'var(--blue)',borderRadius:4,display:'flex',alignItems:'center',paddingLeft:8,fontSize:10,color:'#fff',fontWeight:500}}>{pct>25?fmtM(total):''}</div>
+                  </div>
+                  <div style={{fontSize:11,color:'var(--text3)',width:48,textAlign:'right',flexShrink:0}}>{fmtM(total)}</div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
