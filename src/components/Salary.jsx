@@ -34,6 +34,20 @@ export default function Salary({role, myTrainer}) {
   const ptGroupTotal = ptInsenGroupTotal(d.trainer)
   const ptGroupEligible = ptGroupTotal >= PT_INSEN_THRESHOLD
   const nextMonth = month<12?ML[month]:'익년 1월'
+  const calcTrainer = tr => {
+    const base=policy.base[tr.name]||1300000
+    const taskInsen=policy.taskInsen[tr.name]??400000
+    const fixed=base+taskInsen
+    const ptAmt=d.trainer[tr.name]||0
+    const ptEligible=PT_INSEN_TRAINERS.includes(tr.name)
+    const ptInsen=ptInsenFor(tr.name,d.trainer)
+    const hol=sumHolidayBonus(holRecs, tr.name, +year, month)
+    const qI=qInfo.insen
+    const total=fixed+mi+ptInsen+hol+qI
+    return {tr, base, taskInsen, ptAmt, ptEligible, ptInsen, hol, qI, total}
+  }
+  const trainerCalcs = visibleTrainers.map(calcTrainer)
+  const excInjaeTotal = trainerCalcs.filter(c=>c.tr.name!=='인재').reduce((a,c)=>a+c.total,0)
   return (
     <div>
       <div className="cal-nav" style={{marginBottom:16}}>
@@ -41,17 +55,16 @@ export default function Salary({role, myTrainer}) {
         <span className="cal-nav-label">{year}년 {ML[month-1]} 정산</span>
         <button className="cal-nav-btn" disabled={idx>=SALES_MONTH_KEYS.length-1} onClick={()=>setIdx(i=>Math.min(SALES_MONTH_KEYS.length-1,i+1))}>▶</button>
       </div>
+      {isOwner && (
+        <div className="card" style={{padding:0,overflow:'hidden',marginBottom:16}}>
+          <div style={{background:'var(--blue)',padding:'12px 16px'}}>
+            <div style={{color:'rgba(255,255,255,.85)',fontSize:12,marginBottom:3}}>정우·준혁·건호 합산 월급 (인재 제외) · {ML[month-1]}</div>
+            <div style={{color:'#fff',fontSize:24,fontWeight:600}}>{fmt(excInjaeTotal)}</div>
+          </div>
+        </div>
+      )}
       <div className="grid-2">
-        {visibleTrainers.map(tr=>{
-          const base=policy.base[tr.name]||1300000
-          const taskInsen=policy.taskInsen[tr.name]??400000
-          const fixed=base+taskInsen
-          const ptAmt=d.trainer[tr.name]||0
-          const ptEligible=PT_INSEN_TRAINERS.includes(tr.name)
-          const ptInsen=ptInsenFor(tr.name,d.trainer)
-          const hol=sumHolidayBonus(holRecs, tr.name, +year, month)
-          const qI=qInfo.insen
-          const total=fixed+mi+ptInsen+hol+qI
+        {trainerCalcs.map(({tr, base, taskInsen, ptAmt, ptEligible, ptInsen, hol, qI, total})=>{
           return (
             <div key={tr.name} className="card" style={{padding:0,overflow:'hidden'}}>
               <div style={{background:'var(--green)',padding:'12px 16px'}}>
