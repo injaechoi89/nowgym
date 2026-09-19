@@ -16,6 +16,7 @@ export default function PTContract({role, myTrainer}) {
   const actual=parseInt(form.actual)||selProd.price
   const discount=selProd.price-actual
   const visibleMembers = isOwner ? members : members.filter(m=>m.trainer===myTrainer)
+  const contractsOf = m => (m.contracts && m.contracts.length) ? m.contracts : [{id:'legacy-'+m.id,product:m.product,regType:m.regType,payMethod:m.payMethod,start:m.start,actual:m.actual,staff:m.staff}]
   const openNew=()=>{setForm({name:'',phone:'',birth:'',gender:'남',trainer:isOwner?'인재':myTrainer,goal:'',regType:'신규',payMethod:'카드',start:toDateInput(TODAY),actual:'',staff:isOwner?'인재':myTrainer,productId:'f10'});setCur(null);setRenewMode(false);setEditContractId(null);setView('form')}
   const openRenew=m=>{setForm({name:m.name,phone:m.phone,birth:m.birth,gender:m.gender,trainer:m.trainer,goal:m.goal||'',regType:'재등록',payMethod:m.payMethod,start:toDateInput(TODAY),actual:'',staff:m.staff,productId:m.product.id});setCur(m);setRenewMode(true);setEditContractId(null);setView('form')}
   const openEditContract=(m,c)=>{setForm({name:m.name,phone:m.phone,birth:m.birth,gender:m.gender,trainer:m.trainer,goal:m.goal||'',regType:c.regType,payMethod:c.payMethod,start:toDateInput(c.start),actual:c.actual,staff:c.staff,productId:c.product.id});setCur(m);setRenewMode(false);setEditContractId(c.id);setView('form')}
@@ -29,8 +30,9 @@ export default function PTContract({role, myTrainer}) {
       return
     }
     if(cur&&editContractId){
-      const isLatest=cur.contracts[cur.contracts.length-1].id===editContractId
-      const contracts=cur.contracts.map(c=>c.id===editContractId?{...c,product:selProd,regType:form.regType,payMethod:form.payMethod,start:sd,actual,staff:form.staff}:c)
+      const curContracts=contractsOf(cur)
+      const isLatest=curContracts[curContracts.length-1].id===editContractId
+      const contracts=curContracts.map(c=>c.id===editContractId?{...c,product:selProd,regType:form.regType,payMethod:form.payMethod,start:sd,actual,staff:form.staff}:c)
       const nm={...cur,name:form.name||cur.name,phone:form.phone||cur.phone,birth:form.birth,gender:form.gender,trainer:form.trainer,goal:form.goal,contracts,...(isLatest?{product:selProd,regType:form.regType,payMethod:form.payMethod,start:sd,actual,staff:form.staff}:{})}
       setMembers(ms=>ms.map(m=>m.id===cur.id?nm:m))
       setEditContractId(null); setView('preview'); setCur(nm)
@@ -140,9 +142,9 @@ export default function PTContract({role, myTrainer}) {
                 {cur.goal&&<div className="rrow"><span className="rl">운동목적</span><span className="rv">{cur.goal}</span></div>}
                 <div className="rrow"><span className="rl">담당 트레이너</span><span className="rv">{cur.trainer}</span></div>
               </div>
-              {cur.contracts.slice().reverse().map(c=>{
+              {(()=>{const curContracts=contractsOf(cur);const latestId=curContracts[curContracts.length-1].id;return curContracts.slice().reverse().map(c=>{
                 const expire=addWeeks(c.start,c.product.weeks)
-                const isLatest=c.id===cur.contracts[cur.contracts.length-1].id
+                const isLatest=c.id===latestId
                 return (
                   <div key={c.id} className="card" style={{padding:0,overflow:'hidden',marginBottom:12}}>
                     <div style={{background:'var(--green)',padding:'16px',position:'relative'}}>
@@ -167,7 +169,7 @@ export default function PTContract({role, myTrainer}) {
                     </div>
                   </div>
                 )
-              })}
+              })})()}
             </div>
             <div>
               <div style={{display:'flex',flexDirection:'column',gap:8}}>
