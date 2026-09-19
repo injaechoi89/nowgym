@@ -1,6 +1,6 @@
 import {useState} from 'react'
 import {useSyncedState} from '../useSyncedState.js'
-import {TRAINERS,STAFF_BASE,TASK_INSEN,MT,QT,ML,HOL_RECORDS_INIT,getTier,fmt,fmtM,sumHolidayBonus,PT_INSEN_TRAINERS,ptInsenGroupTotal,ptInsenFor,PT_INSEN_THRESHOLD} from '../data.js'
+import {TRAINERS,STAFF_BASE,TASK_INSEN_BY_TRAINER,MT,QT,ML,HOL_RECORDS_INIT,getTier,fmt,fmtM,sumHolidayBonus,PT_INSEN_TRAINERS,ptInsenGroupTotal,ptInsenFor,PT_INSEN_THRESHOLD} from '../data.js'
 import {useLiveSales} from '../useLiveSales.js'
 
 function getQInsen(key,sales){
@@ -42,7 +42,8 @@ export default function Salary({role, myTrainer}) {
       <div className="grid-2">
         {visibleTrainers.map(tr=>{
           const base=STAFF_BASE[tr.name]||1300000
-          const fixed=base+TASK_INSEN
+          const taskInsen=TASK_INSEN_BY_TRAINER[tr.name]??400000
+          const fixed=base+taskInsen
           const ptAmt=d.trainer[tr.name]||0
           const ptEligible=PT_INSEN_TRAINERS.includes(tr.name)
           const ptInsen=ptInsenFor(tr.name,d.trainer)
@@ -58,7 +59,7 @@ export default function Salary({role, myTrainer}) {
               <div style={{padding:'10px 16px'}}>
                 <div style={{fontSize:11,fontWeight:500,color:'var(--text3)',padding:'6px 0 3px'}}>고정급</div>
                 <div className="rrow"><span className="rl">기본급</span><span className="rv">{fmt(base)}</span></div>
-                <div className="rrow"><span className="rl">과업 인센티브</span><span className="rv g">+{fmt(TASK_INSEN)}</span></div>
+                <div className="rrow"><span className="rl">과업 인센티브</span><span className="rv g">+{fmt(taskInsen)}</span></div>
                 <div style={{fontSize:11,fontWeight:500,color:'var(--text3)',padding:'6px 0 3px'}}>센터 매출 연동</div>
                 <div className="rrow">
                   <span className="rl">센터 매출 인센 <span style={{fontSize:10,color:'var(--text3)'}}>{totalManwon.toLocaleString()}만원 구간</span></span>
