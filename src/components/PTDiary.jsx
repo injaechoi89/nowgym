@@ -1,6 +1,6 @@
 import {useState, useEffect} from 'react'
 import {useSyncedState} from '../useSyncedState.js'
-import {TODAY,TRAINERS,EXERCISES_INIT,PT_MEMBERS_INIT,PT_DATA,ML,WD,fmtDate,fmtDateShort,WORKOUT_LOGS_STORE_KEY,WORKOUT_LOGS_INIT} from '../data.js'
+import {TODAY,TRAINERS,EXERCISES_INIT,PT_MEMBERS_INIT,PT_DATA,ML,WD,fmtDate,fmtDateShort,WORKOUT_LOGS_STORE_KEY,WORKOUT_LOGS_INIT,genToken} from '../data.js'
 const exVolume = ex => ex.sets.reduce((a,s)=>a+(parseFloat(s.w)||0)*(parseFloat(s.r)||0),0)
 const dateKeyOf = (y,m0,d) => `${y}-${m0+1}-${d}`
 const dateKeyOfDate = d => dateKeyOf(d.getFullYear(),d.getMonth(),d.getDate())
@@ -9,7 +9,7 @@ export default function PTDiary({role, myTrainer, diaryJump, onDiaryJumpHandled}
   const [trainer, setTrainer] = useState('정우')
   const effectiveTrainer = isOwner ? trainer : myTrainer
   const [logs, setLogs] = useSyncedState(WORKOUT_LOGS_STORE_KEY, WORKOUT_LOGS_INIT)
-  const [members] = useSyncedState('nowgym-pt-members', PT_MEMBERS_INIT)
+  const [members, setMembers] = useSyncedState('nowgym-pt-members', PT_MEMBERS_INIT)
   const [exercises] = useSyncedState('nowgym-exercises', EXERCISES_INIT)
   const [ptData] = useSyncedState('nowgym-pt-schedule', PT_DATA)
   const [view, setView] = useState('members') // members | calendar | write | detail
@@ -114,7 +114,12 @@ export default function PTDiary({role, myTrainer, diaryJump, onDiaryJumpHandled}
       const setsStr=e.sets.map((s,i)=>`${i+1}세트 ${s.w>0?s.w+'kg ':''}${s.r}${s.u||'회'}`).join(', ')
       return `  • ${e.name}: ${e.sets.length}세트 (${setsStr})`
     }).join('\n')
-    const member=members.find(m=>m.name===l.memberName)
+    let member=members.find(m=>m.name===l.memberName)
+    if(member&&!member.token){
+      const newToken=genToken()
+      setMembers(list=>list.map(m=>m.id===member.id?{...m,token:newToken}:m))
+      member={...member,token:newToken}
+    }
     const diaryLink=member?.token?`\n\n📖 이전 운동 기록들 보러가기 (운동 방법도 볼 수 있어요)\n${window.location.origin}${window.location.pathname}?member=${member.token}`:''
     const msg=`[🏋️ 나우짐 PT 일지]\n\n📅 ${fmtDate(l.date)} · ${l.cnt}번째 수업\n💪 부위: ${l.parts.join(', ')||'—'} · 운동 강도: ${l.int}\n\n🏋️ 오늘 운동\n${exLines}\n\n📝 메모\n${l.memo||'없음'}${diaryLink}\n\n나우짐 📞 053-965-0513`
     setKkModal({msg,name:l.memberName})
