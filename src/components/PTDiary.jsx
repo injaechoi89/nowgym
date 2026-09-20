@@ -111,13 +111,12 @@ export default function PTDiary({role, myTrainer, diaryJump, onDiaryJumpHandled}
   }
   const openKk=l=>{
     const exLines=l.exs.map(e=>{
-      const info=exercises.find(ex=>ex.name===e.name)
       const setsStr=e.sets.map((s,i)=>`${i+1}세트 ${s.w>0?s.w+'kg ':''}${s.r}${s.u||'회'}`).join(', ')
-      let line=`  • ${e.name}: ${e.sets.length}세트 (${setsStr})`
-      if(info&&(info.desc||info.videoUrl||info.imageUrl)) line+=`\n     └ 운동 설명 보기: ${window.location.origin}${window.location.pathname}?ex=${info.id}`
-      return line
+      return `  • ${e.name}: ${e.sets.length}세트 (${setsStr})`
     }).join('\n')
-    const msg=`[🏋️ 나우짐 PT 일지]\n\n📅 ${fmtDate(l.date)} · ${l.cnt}번째 수업\n💪 부위: ${l.parts.join(', ')||'—'} · 운동 강도: ${l.int}\n\n🏋️ 오늘 운동\n${exLines}\n\n📝 메모\n${l.memo||'없음'}\n\n나우짐 📞 053-965-0513`
+    const member=members.find(m=>m.name===l.memberName)
+    const diaryLink=member?.token?`\n\n📖 이전 운동 기록들 보러가기 (운동 방법도 볼 수 있어요)\n${window.location.origin}${window.location.pathname}?member=${member.token}`:''
+    const msg=`[🏋️ 나우짐 PT 일지]\n\n📅 ${fmtDate(l.date)} · ${l.cnt}번째 수업\n💪 부위: ${l.parts.join(', ')||'—'} · 운동 강도: ${l.int}\n\n🏋️ 오늘 운동\n${exLines}\n\n📝 메모\n${l.memo||'없음'}${diaryLink}\n\n나우짐 📞 053-965-0513`
     setKkModal({msg,name:l.memberName})
   }
 
