@@ -58,7 +58,11 @@ export default function PTDiary({role, myTrainer, diaryJump, onDiaryJumpHandled}
     return null
   }
   const loadPrev=(bi,sets)=>setWExs(es=>es.map((e,i)=>i===bi?{...e,sets:sets.map(s=>({...s}))}:e))
-  const addSet=i=>setWExs(es=>es.map((e,ei)=>ei===i?{...e,sets:[...e.sets,{w:'',r:'',u:''}]}:e))
+  const addSet=i=>setWExs(es=>es.map((e,ei)=>{
+    if(ei!==i)return e
+    const last=e.sets[e.sets.length-1]
+    return {...e,sets:[...e.sets,last?{w:last.w,r:last.r,u:last.u}:{w:'',r:'',u:''}]}
+  }))
   const rmEx=i=>setWExs(es=>es.filter((_,ei)=>ei!==i))
   const rmSet=(ei,si)=>setWExs(es=>es.map((e,i)=>i===ei?{...e,sets:e.sets.filter((_,j)=>j!==si)}:e))
   const updSet=(ei,si,field,val)=>setWExs(es=>es.map((e,i)=>i===ei?{...e,sets:e.sets.map((s,j)=>j===si?{...s,[field]:val}:s)}:e))
