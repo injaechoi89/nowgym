@@ -11,6 +11,7 @@ import PTDiary from './components/PTDiary.jsx'
 import PTContract from './components/PTContract.jsx'
 import Settings from './components/Settings.jsx'
 import Login from './components/Login.jsx'
+import MemberDiaryView from './components/MemberDiaryView.jsx'
 
 const MENU = [
   {id:'home', label:'홈', icon:'ti-home'},
@@ -33,6 +34,11 @@ export default function App() {
   const [mobileNavOpen, setMobileNavOpen] = useState(false)
   const [diaryJump, setDiaryJump] = useState(null)
   const [taskJump, setTaskJump] = useState(null)
+
+  const memberToken = new URLSearchParams(window.location.search).get('member')
+  if (memberToken) {
+    return <MemberDiaryView token={memberToken} />
+  }
 
   if (!auth) {
     return <Login onLogin={(identity) => setAuth({identity})} />

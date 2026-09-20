@@ -1,9 +1,12 @@
-import {useState} from 'react'
+import {useState, useEffect} from 'react'
 import {useSyncedState} from '../useSyncedState.js'
-import {TODAY,TRAINERS,PRODUCTS_INIT,PT_MEMBERS_INIT,WD,fmt,fmtDate,toDateInput,addWeeks} from '../data.js'
+import {TODAY,TRAINERS,PRODUCTS_INIT,PT_MEMBERS_INIT,WD,fmt,fmtDate,toDateInput,addWeeks,genToken} from '../data.js'
 export default function PTContract({role, myTrainer}) {
   const isOwner = role==='원장님'
   const [members,setMembers]=useSyncedState('nowgym-pt-members', PT_MEMBERS_INIT)
+  useEffect(()=>{
+    if(members.some(m=>!m.token)) setMembers(list=>list.map(m=>m.token?m:{...m,token:genToken()}))
+  }, [members])
   const [products]=useSyncedState('nowgym-pt-products', PRODUCTS_INIT)
   const [view,setView]=useState('list')
   const [cur,setCur]=useState(null)
@@ -40,7 +43,7 @@ export default function PTContract({role, myTrainer}) {
       return
     }
     const newContract={id:'c'+Date.now(),product:selProd,regType:form.regType,payMethod:form.payMethod,start:sd,actual,staff:form.staff}
-    const nm={id:Date.now(),name:form.name||'홍길동',phone:form.phone||'010-0000-0000',birth:form.birth,gender:form.gender,trainer:form.trainer,goal:form.goal,product:selProd,regType:form.regType,payMethod:form.payMethod,start:sd,actual,staff:form.staff,contracts:[newContract]}
+    const nm={id:Date.now(),name:form.name||'홍길동',phone:form.phone||'010-0000-0000',birth:form.birth,gender:form.gender,trainer:form.trainer,goal:form.goal,product:selProd,regType:form.regType,payMethod:form.payMethod,start:sd,actual,staff:form.staff,contracts:[newContract],token:genToken()}
     setMembers(ms=>[...ms,nm])
     setView('preview'); setCur(nm)
   }
@@ -70,6 +73,18 @@ export default function PTContract({role, myTrainer}) {
     const nm={...m,contracts:remaining,product:latest.product,regType:latest.regType,payMethod:latest.payMethod,start:latest.start,actual:latest.actual,staff:latest.staff}
     setMembers(ms=>ms.map(x=>x.id===m.id?nm:x))
     setCur(nm)
+  }
+  const copyDiaryLink=m=>{
+    if(!m.token){alert('링크를 준비 중이에요. 잠시 후 다시 시도해주세요.');return}
+    const url=`${window.location.origin}${window.location.pathname}?member=${m.token}`
+    if(navigator.clipboard&&navigator.clipboard.writeText){
+      navigator.clipboard.writeText(url).then(
+        ()=>alert('운동일지 링크가 복사되었어요. 회원님께 전달해주세요.'),
+        ()=>window.prompt('아래 링크를 복사해주세요', url)
+      )
+    } else {
+      window.prompt('아래 링크를 복사해주세요', url)
+    }
   }
   const trI=['정우','준혁','건호','인재']
   return (
@@ -194,6 +209,7 @@ export default function PTContract({role, myTrainer}) {
             <div>
               <div style={{display:'flex',flexDirection:'column',gap:8}}>
                 <button className="btn btn-g" style={{padding:13,fontSize:14,fontWeight:700,borderRadius:'var(--radius)',marginBottom:8}} onClick={()=>openRenew(cur)}>🔄 재등록 (새 계약 추가)</button>
+                <button className="btn btn-outline" style={{padding:13,fontSize:14,fontWeight:700,borderRadius:'var(--radius)',marginBottom:8}} onClick={()=>copyDiaryLink(cur)}>🔗 회원 운동일지 링크 복사</button>
                 <button className="btn btn-kk" style={{padding:13,fontSize:14,fontWeight:700,borderRadius:'var(--radius)',marginBottom:8}} onClick={()=>openKk('contract')}>💬 가입서 카카오 발송</button>
                 <button className="btn btn-kk" style={{padding:13,fontSize:14,fontWeight:700,borderRadius:'var(--radius)',marginBottom:8}} onClick={()=>openKk('receipt')}>💬 결제내역 카카오 발송</button>
                 <button style={{padding:13,fontSize:14,fontWeight:700,borderRadius:'var(--radius)',background:'#f0b800',border:'none',cursor:'pointer'}} onClick={()=>openKk('both')}>💬 가입서 + 결제내역 동시 발송</button>

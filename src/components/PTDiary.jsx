@@ -1,22 +1,14 @@
 import {useState, useEffect} from 'react'
 import {useSyncedState} from '../useSyncedState.js'
-import {TODAY,TRAINERS,EXERCISES_INIT,PT_MEMBERS_INIT,PT_DATA,ML,WD,fmtDate,fmtDateShort} from '../data.js'
+import {TODAY,TRAINERS,EXERCISES_INIT,PT_MEMBERS_INIT,PT_DATA,ML,WD,fmtDate,fmtDateShort,WORKOUT_LOGS_STORE_KEY,WORKOUT_LOGS_INIT} from '../data.js'
 const exVolume = ex => ex.sets.reduce((a,s)=>a+(parseFloat(s.w)||0)*(parseFloat(s.r)||0),0)
 const dateKeyOf = (y,m0,d) => `${y}-${m0+1}-${d}`
 const dateKeyOfDate = d => dateKeyOf(d.getFullYear(),d.getMonth(),d.getDate())
-const INIT_LOGS = {
-  정우:[
-    {id:'a',memberId:1,memberName:'홍길동',date:new Date(2026,8,3),int:'💀 최고',parts:['하체','코어'],exs:[{name:'스쿼트',sets:[{w:100,r:5,u:''},{w:100,r:5,u:''},{w:90,r:8,u:''}]},{name:'레그프레스',sets:[{w:160,r:10,u:''},{w:140,r:12,u:''}]},{name:'플랭크',sets:[{w:0,r:60,u:'초'},{w:0,r:60,u:'초'}]}],memo:'스쿼트 100kg 3세트 완주! 다음엔 105kg 도전.',media:['📸'],cnt:2},
-    {id:'b',memberId:1,memberName:'홍길동',date:new Date(2026,8,1),int:'💪 보통',parts:['가슴','어깨'],exs:[{name:'벤치프레스',sets:[{w:80,r:5,u:''},{w:75,r:8,u:''}]},{name:'숄더프레스',sets:[{w:50,r:10,u:''},{w:45,r:12,u:''}]}],memo:'벤치 80kg 5회 성공!',media:[],cnt:1},
-  ],
-  준혁:[{id:'c',memberId:5,memberName:'오소연',date:new Date(2026,8,2),int:'💪 보통',parts:['하체'],exs:[{name:'스쿼트',sets:[{w:60,r:10,u:''},{w:60,r:10,u:''}]}],memo:'레그프레스 60kg 달성!',media:[],cnt:1}],
-  건호:[],인재:[],
-}
 export default function PTDiary({role, myTrainer, diaryJump, onDiaryJumpHandled}) {
   const isOwner = role==='원장님'
   const [trainer, setTrainer] = useState('정우')
   const effectiveTrainer = isOwner ? trainer : myTrainer
-  const [logs, setLogs] = useSyncedState('nowgym-workout-logs', INIT_LOGS)
+  const [logs, setLogs] = useSyncedState(WORKOUT_LOGS_STORE_KEY, WORKOUT_LOGS_INIT)
   const [members] = useSyncedState('nowgym-pt-members', PT_MEMBERS_INIT)
   const [exercises] = useSyncedState('nowgym-exercises', EXERCISES_INIT)
   const [ptData] = useSyncedState('nowgym-pt-schedule', PT_DATA)
@@ -118,7 +110,15 @@ export default function PTDiary({role, myTrainer, diaryJump, onDiaryJumpHandled}
     setView('calendar')
   }
   const openKk=l=>{
-    const msg=`[🏋️ 나우짐 PT 일지]\n\n📅 ${fmtDate(l.date)} · ${l.cnt}번째 수업\n💪 부위: ${l.parts.join(', ')||'—'} · 운동 강도: ${l.int}\n\n🏋️ 오늘 운동\n${l.exs.map(e=>`  • ${e.name}: ${e.sets.length}세트 (${e.sets.map((s,i)=>`${i+1}세트 ${s.w>0?s.w+'kg ':''}${s.r}${s.u||'회'}`).join(', ')})`).join('\n')}\n\n📝 메모\n${l.memo||'없음'}\n\n나우짐 📞 053-965-0513`
+    const exLines=l.exs.map(e=>{
+      const info=exercises.find(ex=>ex.name===e.name)
+      const setsStr=e.sets.map((s,i)=>`${i+1}세트 ${s.w>0?s.w+'kg ':''}${s.r}${s.u||'회'}`).join(', ')
+      let line=`  • ${e.name}: ${e.sets.length}세트 (${setsStr})`
+      if(info?.desc) line+=`\n     └ 설명: ${info.desc}`
+      if(info?.videoUrl) line+=`\n     └ 영상: ${info.videoUrl}`
+      return line
+    }).join('\n')
+    const msg=`[🏋️ 나우짐 PT 일지]\n\n📅 ${fmtDate(l.date)} · ${l.cnt}번째 수업\n💪 부위: ${l.parts.join(', ')||'—'} · 운동 강도: ${l.int}\n\n🏋️ 오늘 운동\n${exLines}\n\n📝 메모\n${l.memo||'없음'}\n\n나우짐 📞 053-965-0513`
     setKkModal({msg,name:l.memberName})
   }
 

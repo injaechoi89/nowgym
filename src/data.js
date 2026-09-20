@@ -10,6 +10,19 @@ export const TRAINERS = [
   {name:'건호', short:'건호', av:'av2'},
   {name:'인재', short:'인재', av:'av3'},
 ];
+// 회원이 로그인 없이 본인 운동일지를 볼 수 있는 링크에 쓰는, 추측하기 어려운 토큰을 만듭니다.
+export function genToken(){
+  return crypto.randomUUID ? crypto.randomUUID().replace(/-/g,'') : Math.random().toString(36).slice(2)+Date.now().toString(36)
+}
+export const WORKOUT_LOGS_STORE_KEY = 'nowgym-workout-logs'
+export const WORKOUT_LOGS_INIT = {
+  정우:[
+    {id:'a',memberId:1,memberName:'홍길동',date:new Date(2026,8,3),int:'💀 최고',parts:['하체','코어'],exs:[{name:'스쿼트',sets:[{w:100,r:5,u:''},{w:100,r:5,u:''},{w:90,r:8,u:''}]},{name:'레그프레스',sets:[{w:160,r:10,u:''},{w:140,r:12,u:''}]},{name:'플랭크',sets:[{w:0,r:60,u:'초'},{w:0,r:60,u:'초'}]}],memo:'스쿼트 100kg 3세트 완주! 다음엔 105kg 도전.',media:['📸'],cnt:2},
+    {id:'b',memberId:1,memberName:'홍길동',date:new Date(2026,8,1),int:'💪 보통',parts:['가슴','어깨'],exs:[{name:'벤치프레스',sets:[{w:80,r:5,u:''},{w:75,r:8,u:''}]},{name:'숄더프레스',sets:[{w:50,r:10,u:''},{w:45,r:12,u:''}]}],memo:'벤치 80kg 5회 성공!',media:[],cnt:1},
+  ],
+  준혁:[{id:'c',memberId:5,memberName:'오소연',date:new Date(2026,8,2),int:'💪 보통',parts:['하체'],exs:[{name:'스쿼트',sets:[{w:60,r:10,u:''},{w:60,r:10,u:''}]}],memo:'레그프레스 60kg 달성!',media:[],cnt:1}],
+  건호:[],인재:[],
+}
 // 트레이너 기본급/과업 인센티브는 적용 시작월(effectiveFrom, 'YYYY-MM')을 가진 이력으로 관리합니다.
 // 새 변경을 추가하면 그 달부터 적용되고, 그 이전 달의 급여 정산은 그 시점에 유효했던 값을 그대로 씁니다.
 export const SALARY_POLICY_INIT = [
