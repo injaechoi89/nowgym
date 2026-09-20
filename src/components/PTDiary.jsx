@@ -114,8 +114,7 @@ export default function PTDiary({role, myTrainer, diaryJump, onDiaryJumpHandled}
       const info=exercises.find(ex=>ex.name===e.name)
       const setsStr=e.sets.map((s,i)=>`${i+1}세트 ${s.w>0?s.w+'kg ':''}${s.r}${s.u||'회'}`).join(', ')
       let line=`  • ${e.name}: ${e.sets.length}세트 (${setsStr})`
-      if(info?.desc) line+=`\n     └ 설명: ${info.desc}`
-      if(info?.videoUrl) line+=`\n     └ 영상: ${info.videoUrl}`
+      if(info&&(info.desc||info.videoUrl||info.imageUrl)) line+=`\n     └ 운동 설명 보기: ${window.location.origin}${window.location.pathname}?ex=${info.id}`
       return line
     }).join('\n')
     const msg=`[🏋️ 나우짐 PT 일지]\n\n📅 ${fmtDate(l.date)} · ${l.cnt}번째 수업\n💪 부위: ${l.parts.join(', ')||'—'} · 운동 강도: ${l.int}\n\n🏋️ 오늘 운동\n${exLines}\n\n📝 메모\n${l.memo||'없음'}\n\n나우짐 📞 053-965-0513`
