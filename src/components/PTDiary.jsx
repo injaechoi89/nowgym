@@ -118,7 +118,7 @@ export default function PTDiary({role, myTrainer, diaryJump, onDiaryJumpHandled}
     setView('calendar')
   }
   const openKk=l=>{
-    const msg=`[🏋️ 나우짐 PT 일지]\n\n안녕하세요 ${l.memberName}님!\n${effectiveTrainer} 트레이너입니다 😊\n\n📅 ${fmtDate(l.date)} · ${l.cnt}번째 수업\n💪 부위: ${l.parts.join(', ')||'—'} · ${l.int}\n\n🏋️ 오늘 운동\n${l.exs.map(e=>`  • ${e.name}: ${e.sets.length}세트 (${e.sets.map((s,i)=>`${i+1}세트 ${s.w>0?s.w+'kg ':''}${s.r}${s.u||'회'}`).join(', ')})`).join('\n')}\n\n📝 메모\n${l.memo||'없음'}\n\n나우짐 📞 053-965-0513`
+    const msg=`[🏋️ 나우짐 PT 일지]\n\n📅 ${fmtDate(l.date)} · ${l.cnt}번째 수업\n💪 부위: ${l.parts.join(', ')||'—'} · 운동 강도: ${l.int}\n\n🏋️ 오늘 운동\n${l.exs.map(e=>`  • ${e.name}: ${e.sets.length}세트 (${e.sets.map((s,i)=>`${i+1}세트 ${s.w>0?s.w+'kg ':''}${s.r}${s.u||'회'}`).join(', ')})`).join('\n')}\n\n📝 메모\n${l.memo||'없음'}\n\n나우짐 📞 053-965-0513`
     setKkModal({msg,name:l.memberName})
   }
 
@@ -249,6 +249,7 @@ export default function PTDiary({role, myTrainer, diaryJump, onDiaryJumpHandled}
               <div key={i} className="card" style={{marginBottom:10}}>
                 <div style={{display:'flex',alignItems:'baseline',gap:6,marginBottom:8}}>
                   <span style={{fontSize:14,fontWeight:500}}>🏋️ {e.name}</span>
+                  {(()=>{const info=exercises.find(ex=>ex.name===e.name); return info&&(info.desc||info.videoUrl||info.imageUrl)&&<button style={{background:'transparent',border:'none',color:'var(--text3)',cursor:'pointer',fontSize:13,padding:0}} onClick={()=>setExInfo(info)}>ⓘ</button>})()}
                   <span style={{fontSize:11,color:'var(--text3)'}}>VOL {Math.round(exVolume(e)).toLocaleString()}kg</span>
                 </div>
                 <table style={{width:'100%',borderCollapse:'collapse',fontSize:12}}>
@@ -373,8 +374,13 @@ export default function PTDiary({role, myTrainer, diaryJump, onDiaryJumpHandled}
         <div className="modal-backdrop" onClick={e=>e.target===e.currentTarget&&setKkModal(null)}>
           <div className="modal">
             <div className="modal-title">💬 카카오톡 발송</div>
-            <div style={{fontSize:13,color:'var(--text3)',marginBottom:10}}>{kkModal.name}님에게 발송</div>
-            <div style={{background:'#FEE500',borderRadius:12,padding:14,fontSize:13,color:'#3C1E1E',lineHeight:1.8,whiteSpace:'pre-wrap',marginBottom:12}}>{kkModal.msg}</div>
+            <div style={{fontSize:13,color:'var(--text3)',marginBottom:10}}>{kkModal.name}님에게 발송 · 보내기 전에 아래 내용을 직접 수정할 수 있어요</div>
+            <textarea
+              value={kkModal.msg}
+              onChange={e=>setKkModal(m=>({...m,msg:e.target.value}))}
+              rows={14}
+              style={{width:'100%',boxSizing:'border-box',background:'#FEE500',borderRadius:12,padding:14,fontSize:13,color:'#3C1E1E',lineHeight:1.8,whiteSpace:'pre-wrap',marginBottom:12,border:'none',resize:'vertical',fontFamily:'inherit'}}
+            />
             <div style={{display:'flex',gap:8}}>
               <button className="btn btn-outline" style={{flex:1}} onClick={()=>setKkModal(null)}>닫기</button>
               <button className="btn btn-kk" style={{flex:2,padding:11,fontSize:14,fontWeight:700}} onClick={()=>{setKkModal(null);alert(kkModal.name+'님께 카카오톡 발송 완료!')}}>💬 카카오톡으로 보내기</button>
