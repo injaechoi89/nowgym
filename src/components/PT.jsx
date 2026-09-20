@@ -23,7 +23,8 @@ export default function PT({role, myTrainer, onOpenDiary}) {
   const [members] = useSyncedState('nowgym-pt-members', PT_MEMBERS_INIT)
   const [hoursSettings, setHoursSettings] = useState(getPtHoursSettings())
   useEffect(() => subscribePtHoursSettings(setHoursSettings), [])
-  const PT_HOURS = buildHourSlots(hoursSettings.start, hoursSettings.end)
+  const myHours = hoursSettings[effectiveTrainer] || {start:'09:00', end:'19:00'}
+  const PT_HOURS = buildHourSlots(myHours.start, myHours.end)
   const [modal, setModal] = useState(null)
   const [form, setForm] = useState(emptyForm())
   const [memberPickerOpen, setMemberPickerOpen] = useState(false)

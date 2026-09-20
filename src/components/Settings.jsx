@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { IDENTITIES, setPin } from '../auth.js'
 import { getHolBonusSettings, setHolBonusSettings, subscribeHolBonusSettings } from '../holSettings.js'
-import { getPtHoursSettings, setPtHoursSettings, subscribePtHoursSettings } from '../ptHoursSettings.js'
+import { getPtHoursSettings, setPtHoursSettingsFor, subscribePtHoursSettings } from '../ptHoursSettings.js'
 import { useSyncedState } from '../useSyncedState.js'
 import { EXERCISES_INIT, PRODUCTS_INIT, TRAINERS, SALARY_POLICY_INIT } from '../data.js'
 import { readFileAsDataUrl, processImage } from '../photoUtils.js'
@@ -22,7 +22,7 @@ export default function Settings({ role, myTrainer }) {
   const [savedMsg, setSavedMsg] = useState('')
   const [holSettings, setHolSettingsState] = useState(getHolBonusSettings())
   const [holSavedMsg, setHolSavedMsg] = useState('')
-  const [ptHours, setPtHoursState] = useState(getPtHoursSettings())
+  const [ptHoursAll, setPtHoursAllState] = useState(getPtHoursSettings())
   const [ptHoursSavedMsg, setPtHoursSavedMsg] = useState('')
   const [exercises, setExercises] = useSyncedState('nowgym-exercises', EXERCISES_INIT)
   const [exForm, setExForm] = useState(null)
@@ -33,7 +33,7 @@ export default function Settings({ role, myTrainer }) {
   const [salaryForm, setSalaryForm] = useState(null)
 
   useEffect(() => subscribeHolBonusSettings(setHolSettingsState), [])
-  useEffect(() => subscribePtHoursSettings(setPtHoursState), [])
+  useEffect(() => subscribePtHoursSettings(setPtHoursAllState), [])
 
   const save = async (id) => {
     const val = (inputs[id]||'').trim()
@@ -50,12 +50,14 @@ export default function Settings({ role, myTrainer }) {
     setTimeout(()=>setHolSavedMsg(''), 2500)
   }
 
-  const savePtHours = () => {
-    if (ptHours.start >= ptHours.end) { alert('시작 시간이 끝 시간보다 빨라야 해요.'); return }
-    setPtHoursSettings(ptHours)
-    setPtHoursSavedMsg('PT 운영시간이 저장되었습니다. 페이지를 새로고침하면 적용돼요.')
+  const savePtHoursFor = (name) => {
+    const h = ptHoursAll[name] || {start:'09:00', end:'19:00'}
+    if (h.start >= h.end) { alert('시작 시간이 끝 시간보다 빨라야 해요.'); return }
+    setPtHoursSettingsFor(name, h)
+    setPtHoursSavedMsg(`${name} PT 운영시간이 저장되었습니다.`)
     setTimeout(()=>setPtHoursSavedMsg(''), 3500)
   }
+  const updatePtHours = (name, field, val) => setPtHoursAllState(s => ({...s, [name]: {...(s[name]||{start:'09:00',end:'19:00'}), [field]: val}}))
 
   const exByCat = {}
   exercises.forEach(e => { (exByCat[e.category] = exByCat[e.category] || []).push(e) })
@@ -201,8 +203,34 @@ export default function Settings({ role, myTrainer }) {
         )}
       </div>
       )}
-      {tab==='general' && (isOwner ? (
+      {tab==='general' && (
         <>
+          <div className="card" style={{marginBottom:14}}>
+            <div className="card-title">PT 시간표 운영시간</div>
+            <p style={{fontSize:13,color:'var(--text3)',marginBottom:14}}>
+              PT 시간표에 표시되는 하루 시작/끝 시간입니다. 트레이너마다 근무시간이 다르면 각자 따로 설정할 수 있어요. 30분 단위로 칸이 생성됩니다.
+            </p>
+            {ptHoursSavedMsg && <div style={{fontSize:13,color:'var(--green)',marginBottom:10}}>{ptHoursSavedMsg}</div>}
+            {(isOwner ? TRAINERS : TRAINERS.filter(t=>t.name===myTrainer)).map(t => {
+              const h = ptHoursAll[t.name] || {start:'09:00', end:'19:00'}
+              return (
+                <div key={t.name} style={{border:'0.5px solid var(--border)',borderRadius:'var(--radius)',padding:'10px 12px',marginBottom:10}}>
+                  <div style={{fontSize:13,fontWeight:500,marginBottom:8}}>{t.name}</div>
+                  <div className="rrow" style={{gap:10}}>
+                    <span className="rl" style={{minWidth:80}}>시작 시간</span>
+                    <input type="time" value={h.start} onChange={e=>updatePtHours(t.name,'start',e.target.value)} style={{flex:1}} />
+                  </div>
+                  <div className="rrow" style={{gap:10}}>
+                    <span className="rl" style={{minWidth:80}}>끝 시간</span>
+                    <input type="time" value={h.end} onChange={e=>updatePtHours(t.name,'end',e.target.value)} style={{flex:1}} />
+                  </div>
+                  <button className="btn btn-g" style={{marginTop:10,padding:'6px 14px',fontSize:12}} onClick={()=>savePtHoursFor(t.name)}>{t.name} 운영시간 저장</button>
+                </div>
+              )
+            })}
+          </div>
+          {isOwner ? (
+          <>
           <div className="card" style={{marginBottom:14}}>
             <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',gap:10}}>
               <div className="card-title" style={{marginBottom:0}}>PT 상품 관리</div>
@@ -308,22 +336,6 @@ export default function Settings({ role, myTrainer }) {
             )}
           </div>
           <div className="card" style={{marginBottom:14}}>
-            <div className="card-title">PT 시간표 운영시간</div>
-            <p style={{fontSize:13,color:'var(--text3)',marginBottom:14}}>
-              PT 시간표에 표시되는 하루 시작/끝 시간입니다. 30분 단위로 칸이 생성됩니다.
-            </p>
-            {ptHoursSavedMsg && <div style={{fontSize:13,color:'var(--green)',marginBottom:10}}>{ptHoursSavedMsg}</div>}
-            <div className="rrow" style={{gap:10}}>
-              <span className="rl" style={{minWidth:80}}>시작 시간</span>
-              <input type="time" value={ptHours.start} onChange={e=>setPtHoursState(s=>({...s, start: e.target.value}))} style={{flex:1}} />
-            </div>
-            <div className="rrow" style={{gap:10}}>
-              <span className="rl" style={{minWidth:80}}>끝 시간</span>
-              <input type="time" value={ptHours.end} onChange={e=>setPtHoursState(s=>({...s, end: e.target.value}))} style={{flex:1}} />
-            </div>
-            <button className="btn btn-g" style={{marginTop:10}} onClick={savePtHours}>운영시간 저장</button>
-          </div>
-          <div className="card" style={{marginBottom:14}}>
             <div className="card-title">근무 추가금 설정</div>
             <p style={{fontSize:13,color:'var(--text3)',marginBottom:14}}>
               스케줄 &gt; 휴일근무에서 등록하는 근무 유형별 추가금입니다. 정상근무는 항상 추가금이 없습니다.
@@ -363,12 +375,14 @@ export default function Settings({ role, myTrainer }) {
               </div>
             ))}
           </div>
+          </>
+          ) : (
+            <div className="card" style={{textAlign:'center',padding:'2rem 1rem',color:'var(--text3)'}}>
+              🔒 나머지 설정은 원장님만 볼 수 있어요.
+            </div>
+          )}
         </>
-      ) : (
-        <div className="card" style={{textAlign:'center',padding:'2rem 1rem',color:'var(--text3)'}}>
-          🔒 나머지 설정은 원장님만 볼 수 있어요.
-        </div>
-      ))}
+      )}
     </div>
   )
 }
