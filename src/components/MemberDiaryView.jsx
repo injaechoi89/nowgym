@@ -57,6 +57,7 @@ export default function MemberDiaryView({ token }) {
                   <div style={{fontSize:12,color:'var(--text2)',marginTop:2}}>
                     {e.sets.map((s,si) => `${si+1}세트 ${s.w>0?s.w+'kg ':''}${s.r}${s.u||'회'}`).join(', ')}
                   </div>
+                  {e.memo && <div style={{fontSize:11,color:'var(--text3)',marginTop:3}}>📝 {e.memo}</div>}
                 </div>
               )
             })}
