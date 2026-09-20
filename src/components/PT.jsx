@@ -138,9 +138,9 @@ export default function PT({role, myTrainer, onOpenDiary}) {
   const dayColWidthPct = (100 - 6) / 7 / 2 // 라벨 6% 남기고 7일 x 2칸 균등 분할
 
   const cellStyle = (covering, dayIndex) => {
-    if (!covering) return {border:'0.5px solid var(--border)',background:dayIndex%2===0?'var(--surface)':'var(--surface1)',cursor:'pointer',height:32,width:dayColWidthPct+'%'}
+    if (!covering) return {border:'1px solid var(--border)',background:dayIndex%2===0?'var(--surface)':'var(--surface1)',cursor:'pointer',height:32,width:dayColWidthPct+'%'}
     const isHalf = covering.booking.type==='half'
-    return {border:'0.5px solid '+(isHalf?'#D4537E':'#378ADD'),background:isHalf?'#FBEAF0':'#E6F1FB',color:isHalf?'#712B13':'#042C53',textAlign:'center',fontWeight:500,fontSize:10,cursor:covering.isStart?'pointer':'default',height:32,width:dayColWidthPct+'%'}
+    return {border:'1px solid '+(isHalf?'#D4537E':'#378ADD'),background:isHalf?'#FBEAF0':'#E6F1FB',color:isHalf?'#712B13':'#042C53',textAlign:'center',fontWeight:500,fontSize:10,cursor:covering.isStart?'pointer':'default',height:32,width:dayColWidthPct+'%'}
   }
 
   return (
@@ -198,7 +198,7 @@ export default function PT({role, myTrainer, onOpenDiary}) {
                 const half30 = nextSlotOf(h)
                 return (
                   <tr key={h}>
-                    <td style={{border:'0.5px solid var(--border)',padding:'0 6px',background:'var(--surface1)',color:'var(--text3)',whiteSpace:'nowrap',height:32}}>{h}</td>
+                    <td style={{border:'1px solid var(--border)',padding:'0 6px',background:'var(--surface1)',color:'var(--text3)',whiteSpace:'nowrap',height:32}}>{h}</td>
                     {DAYS.map((_,i)=>{
                       const dt = new Date(mon); dt.setDate(dt.getDate()+i)
                       const dKey = toKey(dt)
@@ -213,7 +213,7 @@ export default function PT({role, myTrainer, onOpenDiary}) {
                             <td onClick={()=>openCell(dKey,half30,dt)} style={cellStyle(cov1,i)}>
                               {cov1&&cov1.isStart?(()=>{const sc=sessionCount(cov1.booking);return <>{cov1.booking.type==='half'?'하프':'PT'}<br/>{cov1.booking.m.slice(0,3)}{sc?` ${sc.n}/${sc.total}`:''}</>})():null}
                             </td>
-                          ) : <td style={{border:'0.5px solid var(--border)',background:i%2===0?'var(--surface)':'var(--surface1)',width:dayColWidthPct+'%'}}></td>}
+                          ) : <td style={{border:'1px solid var(--border)',background:i%2===0?'var(--surface)':'var(--surface1)',width:dayColWidthPct+'%'}}></td>}
                         </Fragment>
                       )
                     })}
