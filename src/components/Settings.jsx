@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { IDENTITIES, setPin } from '../auth.js'
+import { IDENTITIES, setPin, DEFAULT_PINS } from '../auth.js'
 import { getHolBonusSettings, setHolBonusSettings, subscribeHolBonusSettings } from '../holSettings.js'
 import { getPtHoursSettings, setPtHoursSettingsFor, subscribePtHoursSettings } from '../ptHoursSettings.js'
 import { useSyncedState } from '../useSyncedState.js'
@@ -18,8 +18,10 @@ const emptySalaryForm = () => ({
 export default function Settings({ role, myTrainer }) {
   const isOwner = role === '원장님'
   const creatorId = isOwner ? '원장님' : myTrainer
+  const myIdentity = isOwner ? '원장님' : myTrainer
   const [inputs, setInputs] = useState(Object.fromEntries(IDENTITIES.map(id => [id, ''])))
   const [savedMsg, setSavedMsg] = useState('')
+  const [pinsPlain] = useSyncedState('nowgym-pins-plain', DEFAULT_PINS)
   const [holSettings, setHolSettingsState] = useState(getHolBonusSettings())
   const [holSavedMsg, setHolSavedMsg] = useState('')
   const [ptHoursAll, setPtHoursAllState] = useState(getPtHoursSettings())
@@ -104,6 +106,15 @@ export default function Settings({ role, myTrainer }) {
     if (products.length <= 1) { alert('최소 1개의 PT 상품은 남아있어야 해요.'); return }
     if (!window.confirm('이 PT 상품을 삭제할까요?')) return
     setProducts(list => list.filter(x => x.id !== id))
+  }
+  const moveProd = (index, dir) => {
+    const ni = index + dir
+    if (ni < 0 || ni >= products.length) return
+    setProducts(list => {
+      const arr = [...list]
+      ;[arr[index], arr[ni]] = [arr[ni], arr[index]]
+      return arr
+    })
   }
 
   const openNewSalaryPolicy = () => setSalaryForm(emptySalaryForm())
@@ -206,6 +217,26 @@ export default function Settings({ role, myTrainer }) {
       {tab==='general' && (
         <>
           <div className="card" style={{marginBottom:14}}>
+            <div className="card-title">내 로그인 비밀번호 변경</div>
+            <p style={{fontSize:13,color:'var(--text3)',marginBottom:14}}>
+              로그인에 사용하는 4자리 PIN을 변경합니다.
+            </p>
+            {savedMsg && savedMsg.startsWith(myIdentity) && <div style={{fontSize:13,color:'var(--green)',marginBottom:10}}>{savedMsg}</div>}
+            <div className="rrow" style={{gap:10}}>
+              <span className="rl" style={{minWidth:80}}>{myIdentity==='원장님'?'👑 원장님':`${myIdentity} 선생님`}</span>
+              <input
+                type="password"
+                inputMode="numeric"
+                maxLength={4}
+                placeholder="새 PIN 4자리"
+                value={inputs[myIdentity]}
+                onChange={e=>setInputs(f=>({...f, [myIdentity]: e.target.value.replace(/\D/g,'')}))}
+                style={{flex:1,textAlign:'center',letterSpacing:6}}
+              />
+              <button className="btn btn-g" style={{padding:'6px 14px',fontSize:12}} onClick={()=>save(myIdentity)}>변경</button>
+            </div>
+          </div>
+          <div className="card" style={{marginBottom:14}}>
             <div className="card-title">PT 시간표 운영시간</div>
             <p style={{fontSize:13,color:'var(--text3)',marginBottom:14}}>
               PT 시간표에 표시되는 하루 시작/끝 시간입니다. 트레이너마다 근무시간이 다르면 각자 따로 설정할 수 있어요. 30분 단위로 칸이 생성됩니다.
@@ -239,8 +270,12 @@ export default function Settings({ role, myTrainer }) {
             <p style={{fontSize:13,color:'var(--text3)',margin:'6px 0 14px'}}>
               PT 가입/재등록 시 선택할 수 있는 상품입니다. 종류·횟수·기간·가격을 등록/수정할 수 있어요.
             </p>
-            {products.map(p => (
+            {products.map((p,i) => (
               <div key={p.id} className="rrow" style={{gap:8}}>
+                <div style={{display:'flex',flexDirection:'column',gap:0}}>
+                  <button disabled={i===0} style={{background:'transparent',border:'none',color:i===0?'var(--border)':'var(--text3)',cursor:i===0?'default':'pointer',fontSize:12,padding:'0 4px',lineHeight:1}} onClick={()=>moveProd(i,-1)}>▲</button>
+                  <button disabled={i===products.length-1} style={{background:'transparent',border:'none',color:i===products.length-1?'var(--border)':'var(--text3)',cursor:i===products.length-1?'default':'pointer',fontSize:12,padding:'0 4px',lineHeight:1}} onClick={()=>moveProd(i,1)}>▼</button>
+                </div>
                 <span style={{fontSize:10,padding:'2px 7px',borderRadius:8,background:p.type==='half'?'#FBEAF0':'#E6F1FB',color:p.type==='half'?'#712B13':'#042C53',flexShrink:0}}>{p.type==='half'?'하프 30분':'일반 50분'}</span>
                 <span style={{flex:1,fontSize:13}}>{p.name}</span>
                 <span style={{fontSize:12,color:'var(--text3)'}}>{p.count}회 · {p.weeks}주 · {p.price.toLocaleString()}원</span>
@@ -354,14 +389,15 @@ export default function Settings({ role, myTrainer }) {
             <button className="btn btn-g" style={{marginTop:10}} onClick={saveHolSettings}>추가금 저장</button>
           </div>
           <div className="card">
-            <div className="card-title">로그인 PIN 관리</div>
+            <div className="card-title">전체 로그인 PIN 관리</div>
             <p style={{fontSize:13,color:'var(--text3)',marginBottom:14}}>
-              각 트레이너/원장님 로그인용 PIN(4자리 숫자)을 바꿀 수 있습니다. 트레이너에게는 개별적으로 새 PIN을 안내해주세요.
+              각 트레이너/원장님의 현재 PIN을 확인하고 바꿀 수 있습니다.
             </p>
             {savedMsg && <div style={{fontSize:13,color:'var(--green)',marginBottom:10}}>{savedMsg}</div>}
             {IDENTITIES.map(id => (
               <div key={id} className="rrow" style={{gap:10}}>
                 <span className="rl" style={{minWidth:80}}>{id==='원장님'?'👑 원장님':`${id} 선생님`}</span>
+                <span style={{fontSize:12,color:'var(--text3)',letterSpacing:2}}>현재 {pinsPlain[id]||DEFAULT_PINS[id]}</span>
                 <input
                   type="password"
                   inputMode="numeric"

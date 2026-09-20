@@ -148,7 +148,7 @@ export default function PTContract({role, myTrainer}) {
                 {products.map(p=>(
                   <button key={p.id} style={{border:'1.5px solid '+(form.productId===p.id?'var(--green)':'var(--border)'),borderRadius:10,padding:'10px 8px',background:form.productId===p.id?'var(--green-light)':'transparent',cursor:'pointer',textAlign:'left'}} onClick={()=>{setForm(f=>({...f,productId:p.id,actual:''}))}}>
                     <span style={{fontSize:10,padding:'2px 7px',borderRadius:8,background:p.type==='half'?'#FBEAF0':'#E6F1FB',color:p.type==='half'?'#712B13':'#042C53',display:'inline-block',marginBottom:4}}>{p.type==='half'?'하프 30분':'일반 50분'}</span>
-                    <div style={{fontSize:13,fontWeight:500,marginBottom:2}}>{p.count}회권</div>
+                    <div style={{fontSize:13,fontWeight:500,marginBottom:2}}>{p.name}</div>
                     <div style={{fontSize:11,color:'var(--text3)',marginBottom:4}}>{p.weeks}주 과정</div>
                     <div style={{fontSize:14,fontWeight:500,color:'var(--green)'}}>{fmt(p.price)}</div>
                   </button>
