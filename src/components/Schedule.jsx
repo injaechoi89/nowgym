@@ -8,7 +8,7 @@ function holColor(t){return HOL_TYPE_COLOR[t]||'#8b8fa3';}
 const TRAINER_DOT_COLOR = {정우:'#6B5CE7', 준혁:'#1D9E75', 건호:'#D4537E', 인재:'#378ADD'}
 export default function Schedule({role, myTrainer}) {
   const isOwner = role==='원장님'
-  const [tab, setTab] = useState('vac')
+  const [tab, setTab] = useState('hol')
   const [trainer, setTrainer] = useState(isOwner ? '정우' : myTrainer)
   const effectiveTrainer = trainer
   const canEditVac = isOwner || effectiveTrainer===myTrainer
@@ -31,8 +31,8 @@ export default function Schedule({role, myTrainer}) {
   return (
     <div>
       <div style={{display:'flex',gap:4,background:'var(--surface1)',borderRadius:'var(--radius)',padding:4,marginBottom:16,width:'fit-content'}}>
-        <button className={`btn${tab==='vac'?' btn-g':''}`} onClick={()=>setTab('vac')}>🌴 휴가</button>
         <button className={`btn${tab==='hol'?' btn-g':''}`} onClick={()=>setTab('hol')}>🌞 휴일근무</button>
+        <button className={`btn${tab==='vac'?' btn-g':''}`} onClick={()=>setTab('vac')}>🌴 휴가</button>
       </div>
       {tab==='vac'&&(
         <div className="grid-2">
@@ -104,7 +104,10 @@ export default function Schedule({role, myTrainer}) {
           </div>
           <div className="card">
             <div className="card-title">{effectiveTrainer} 휴가 내역</div>
-            {[...vacs].sort().map((k,idx)=>{
+            {[...vacs].sort((a,b)=>{
+              const pa=a.split('-').map(Number), pb=b.split('-').map(Number)
+              return new Date(pa[0],pa[1]-1,pa[2]) - new Date(pb[0],pb[1]-1,pb[2])
+            }).map((k,i)=>({k,idx:i})).reverse().map(({k,idx})=>{
               const p=k.split('-');const past=isPast(new Date(+p[0],+p[1]-1,+p[2]));const dw=new Date(+p[0],+p[1]-1,+p[2]).getDay()
               return <div key={k} style={{display:'flex',alignItems:'center',gap:8,padding:'7px 0',borderBottom:'0.5px solid var(--border)',fontSize:13}}>
                 <span style={{fontSize:11,color:'var(--text3)',minWidth:32}}>{idx+1}번째</span>
