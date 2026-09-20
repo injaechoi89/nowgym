@@ -114,7 +114,7 @@ export default function PTDiary({role, myTrainer, diaryJump, onDiaryJumpHandled}
     setView('calendar')
   }
   const openKk=l=>{
-    const msg=`[🏋️ 나우짐 PT 일지]\n\n안녕하세요 ${l.memberName}님!\n${effectiveTrainer} 트레이너입니다 😊\n\n📅 ${fmtDate(l.date)} · ${l.cnt}번째 수업\n💪 부위: ${l.parts.join(', ')||'—'} · ${l.int}\n\n🏋️ 오늘 운동\n${l.exs.map(e=>`  • ${e.name}: ${e.sets.length}세트 (${e.sets.map((s,i)=>`${i+1}세트 ${s.w>0?s.w+'kg ':''}${s.r}${s.u||'회'}`).join(', ')})`).join('\n')}\n\n📝 메모\n${l.memo||'없음'}\n\n나우짐 📞 053-000-0000`
+    const msg=`[🏋️ 나우짐 PT 일지]\n\n안녕하세요 ${l.memberName}님!\n${effectiveTrainer} 트레이너입니다 😊\n\n📅 ${fmtDate(l.date)} · ${l.cnt}번째 수업\n💪 부위: ${l.parts.join(', ')||'—'} · ${l.int}\n\n🏋️ 오늘 운동\n${l.exs.map(e=>`  • ${e.name}: ${e.sets.length}세트 (${e.sets.map((s,i)=>`${i+1}세트 ${s.w>0?s.w+'kg ':''}${s.r}${s.u||'회'}`).join(', ')})`).join('\n')}\n\n📝 메모\n${l.memo||'없음'}\n\n나우짐 📞 053-965-0513`
     setKkModal({msg,name:l.memberName})
   }
 

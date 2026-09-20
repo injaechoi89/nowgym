@@ -49,7 +49,7 @@ export default function PTContract({role, myTrainer}) {
     const expire=addWeeks(cur.start,cur.product.weeks)
     let msg=''
     if(type==='contract'||type==='both'){
-      msg+=`[🏋️ 나우짐 PT 이용 계약서]\n\n안녕하세요 ${cur.name}님!\n나우짐에 등록해 주셔서 감사합니다 😊\n\n──────────────────\n👤 ${cur.name} · ${cur.phone}\n🏋️ ${cur.trainer} 트레이너\n📋 ${cur.product.name} (${cur.product.weeks}주 과정)\n📅 ${fmtDate(cur.start)} ~ ${fmtDate(expire)}\n💳 ${cur.payMethod} · ${cur.regType}\n💰 결제: ${fmt(cur.actual)}${cur.actual<cur.product.price?' ('+fmt(cur.product.price-cur.actual)+' 할인)':''}\n──────────────────\n\n열심히 운동해서 목표 달성하세요! 💪\n나우짐 📞 053-000-0000`
+      msg+=`[🏋️ 나우짐 PT 이용 계약서]\n\n안녕하세요 ${cur.name}님!\n나우짐에 등록해 주셔서 감사합니다 😊\n\n──────────────────\n🏋️ 담당: ${cur.trainer} 트레이너\n📋 ${cur.product.name} (${cur.product.weeks}주 과정)\n📅 ${fmtDate(cur.start)} ~ ${fmtDate(expire)}\n💳 ${cur.payMethod} · ${cur.regType}\n💰 결제: ${fmt(cur.actual)}${cur.actual<cur.product.price?' ('+fmt(cur.product.price-cur.actual)+' 할인)':''}\n──────────────────\n\n회원님의 건강한 라이프 스타일을 응원할게요!💪🏻\n나우짐 📞 053-965-0513`
     }
     if(type==='receipt'||type==='both'){
       msg+=`\n\n──────────────────\n[💳 결제 내역서]\n  상품: ${cur.product.name}\n  결제일: ${fmtDate(cur.start)}\n  결제: ${cur.payMethod}\n  금액: ${fmt(cur.actual)}\n──────────────────`
