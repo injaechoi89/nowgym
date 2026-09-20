@@ -1,6 +1,7 @@
 import {useState, useEffect} from 'react'
 import {useSyncedState} from '../useSyncedState.js'
 import {TODAY,TRAINERS,EXERCISES_INIT,PT_MEMBERS_INIT,PT_DATA,ML,WD,fmtDate,fmtDateShort,WORKOUT_LOGS_STORE_KEY,WORKOUT_LOGS_INIT,genToken} from '../data.js'
+import {shareKakaoText} from '../kakaoShare.js'
 const exVolume = ex => ex.sets.reduce((a,s)=>a+(parseFloat(s.w)||0)*(parseFloat(s.r)||0),0)
 const dateKeyOf = (y,m0,d) => `${y}-${m0+1}-${d}`
 const dateKeyOfDate = d => dateKeyOf(d.getFullYear(),d.getMonth(),d.getDate())
@@ -120,9 +121,29 @@ export default function PTDiary({role, myTrainer, diaryJump, onDiaryJumpHandled}
       setMembers(list=>list.map(m=>m.id===member.id?{...m,token:newToken}:m))
       member={...member,token:newToken}
     }
-    const diaryLink=member?.token?`\n\n📖 이전 운동 기록들 보러가기 (운동 방법도 볼 수 있어요)\n${window.location.origin}${window.location.pathname}?member=${member.token}`:''
+    const linkUrl=member?.token?`${window.location.origin}${window.location.pathname}?member=${member.token}`:''
+    const diaryLink=linkUrl?`\n\n📖 이전 운동 기록들 보러가기 (운동 방법도 볼 수 있어요)\n${linkUrl}`:''
     const msg=`[🏋️ 나우짐 PT 일지]\n\n📅 ${fmtDate(l.date)} · ${l.cnt}번째 수업\n💪 부위: ${l.parts.join(', ')||'—'} · 운동 강도: ${l.int}\n\n🏋️ 오늘 운동\n${exLines}\n\n📝 메모\n${l.memo||'없음'}${diaryLink}\n\n나우짐 📞 053-965-0513`
-    setKkModal({msg,name:l.memberName})
+    const shortText=`[나우짐 PT 일지] ${l.memberName}님, ${fmtDate(l.date)} ${l.cnt}번째 수업 기록이 도착했어요 🏋️`
+    setKkModal({msg,name:l.memberName,linkUrl,shortText})
+  }
+  const sendKakao=()=>{
+    if(!kkModal.linkUrl){alert('회원 링크가 아직 준비되지 않았어요. 다시 시도해주세요.');return}
+    try{
+      shareKakaoText({text:kkModal.shortText,linkUrl:kkModal.linkUrl,buttonTitle:'운동일지 보기'})
+    }catch(err){
+      alert(err.message||'카카오톡 공유를 시작하지 못했어요.')
+    }
+  }
+  const copyMsg=()=>{
+    if(navigator.clipboard&&navigator.clipboard.writeText){
+      navigator.clipboard.writeText(kkModal.msg).then(
+        ()=>alert('전체 내용이 복사되었어요.'),
+        ()=>window.prompt('아래 내용을 복사해주세요', kkModal.msg)
+      )
+    } else {
+      window.prompt('아래 내용을 복사해주세요', kkModal.msg)
+    }
   }
 
   useEffect(() => {
@@ -377,17 +398,19 @@ export default function PTDiary({role, myTrainer, diaryJump, onDiaryJumpHandled}
         <div className="modal-backdrop" onClick={e=>e.target===e.currentTarget&&setKkModal(null)}>
           <div className="modal">
             <div className="modal-title">💬 카카오톡 발송</div>
-            <div style={{fontSize:13,color:'var(--text3)',marginBottom:10}}>{kkModal.name}님에게 발송 · 보내기 전에 아래 내용을 직접 수정할 수 있어요</div>
+            <div style={{fontSize:13,color:'var(--text3)',marginBottom:10}}>{kkModal.name}님에게 발송 · 아래는 전체 기록 미리보기(복사용)이며, 자유롭게 수정할 수 있어요</div>
             <textarea
               value={kkModal.msg}
               onChange={e=>setKkModal(m=>({...m,msg:e.target.value}))}
               rows={14}
-              style={{width:'100%',boxSizing:'border-box',background:'#FEE500',borderRadius:12,padding:14,fontSize:13,color:'#3C1E1E',lineHeight:1.8,whiteSpace:'pre-wrap',marginBottom:12,border:'none',resize:'vertical',fontFamily:'inherit'}}
+              style={{width:'100%',boxSizing:'border-box',background:'#FEE500',borderRadius:12,padding:14,fontSize:13,color:'#3C1E1E',lineHeight:1.8,whiteSpace:'pre-wrap',marginBottom:6,border:'none',resize:'vertical',fontFamily:'inherit'}}
             />
-            <div style={{display:'flex',gap:8}}>
+            <div style={{fontSize:11,color:'var(--text3)',marginBottom:12}}>💬 카카오톡 공유하기는 카카오 정책상 짧은 알림 문구 + 링크로만 발송돼요 ("{kkModal.shortText}"). 전체 내용은 링크를 눌러 확인하게 됩니다.</div>
+            <div style={{display:'flex',gap:8,marginBottom:8}}>
               <button className="btn btn-outline" style={{flex:1}} onClick={()=>setKkModal(null)}>닫기</button>
-              <button className="btn btn-kk" style={{flex:2,padding:11,fontSize:14,fontWeight:700}} onClick={()=>{setKkModal(null);alert(kkModal.name+'님께 카카오톡 발송 완료!')}}>💬 카카오톡으로 보내기</button>
+              <button className="btn btn-outline" style={{flex:1}} onClick={copyMsg}>📋 전체 내용 복사</button>
             </div>
+            <button className="btn btn-kk" style={{width:'100%',padding:11,fontSize:14,fontWeight:700}} onClick={sendKakao}>💬 카카오톡 공유하기</button>
           </div>
         </div>
       )}
