@@ -10,6 +10,6 @@ function init() {
   return initializeApp({ credential: cert(serviceAccount) })
 }
 
-const app = init()
+export const app = init()
 export const adb = getFirestore(app)
 export const messaging = getMessaging(app)
