@@ -9,7 +9,7 @@ export default async function handler(req, res) {
     await sendPush('원장님', {
       title: `🏋️ ${label} 회원 등록`,
       body: `${trainer} 트레이너 · ${name}님이 ${label}됐어요.`,
-      url: '/',
+      page: 'contract',
     })
     res.status(200).json({ ok: true })
   } catch (e) {

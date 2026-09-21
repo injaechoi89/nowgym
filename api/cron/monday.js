@@ -21,7 +21,7 @@ export default async function handler(req, res) {
       await sendPush('원장님', {
         title: '이번 주 선생님 휴가 요약',
         body: lines.join(' / '),
-        url: '/',
+        page: 'schedule',
       })
     }
 

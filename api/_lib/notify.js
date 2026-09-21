@@ -1,8 +1,19 @@
 import { adb, messaging } from './firebaseAdmin.js'
 
 // identities: identity 문자열 하나 또는 배열('원장님' | '정우' | '준혁' | '건호' | '인재')
-export async function sendPush(identities, { title, body, url = '/' }) {
+// page: 앱 내부 메뉴 id(App.jsx의 MENU id) - 알림 눌렀을 때 그 화면으로 이동시키기 위함. 없으면 홈으로.
+export async function sendPush(identities, { title, body, url = '/', page = null }) {
   const list = Array.isArray(identities) ? identities : [identities]
+
+  // 알림함(인앱 히스토리)에는 기기에 푸시 토큰이 등록돼 있는지와 상관없이 항상 남깁니다.
+  const batch = adb.batch()
+  const createdAt = Date.now()
+  for (const id of list) {
+    const ref = adb.collection('notifications').doc()
+    batch.set(ref, { identity: id, title, body, page, createdAt, read: false })
+  }
+  await batch.commit()
+
   const tokenSet = new Set()
   const invalidByIdentity = {}
 
@@ -14,7 +25,7 @@ export async function sendPush(identities, { title, body, url = '/' }) {
   }
 
   const tokens = [...tokenSet]
-  if (!tokens.length) return { sent: 0, tokenCount: 0 }
+  if (!tokens.length) return { sent: 0 }
 
   const res = await messaging.sendEachForMulticast({
     tokens,

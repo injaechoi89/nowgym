@@ -15,7 +15,7 @@ export default async function handler(req, res) {
       const pts = (ptData[name] || []).filter(p => p.dateKey === todayKey).sort((a, b) => (a.hour < b.hour ? -1 : 1))
       if (!pts.length) continue
       const lines = pts.map(p => `${p.hour} ${p.m}`).join(', ')
-      await sendPush(name, { title: `오늘 PT ${pts.length}건`, body: lines, url: '/' })
+      await sendPush(name, { title: `오늘 PT ${pts.length}건`, body: lines, page: 'pt' })
       ptSent++
     }
 
@@ -24,7 +24,7 @@ export default async function handler(req, res) {
     for (const rec of holRecs) {
       if (rec.date !== in3Key) continue
       const [, m, d] = in3Key.split('-')
-      await sendPush(rec.trainerName, { title: '휴일근무 안내', body: `3일 후 ${m}월 ${d}일에 휴일근무가 등록되어 있어요.`, url: '/' })
+      await sendPush(rec.trainerName, { title: '휴일근무 안내', body: `3일 후 ${m}월 ${d}일에 휴일근무가 등록되어 있어요.`, page: 'schedule' })
       holSent++
     }
 

@@ -27,7 +27,7 @@ export default async function handler(req, res) {
       await sendPush(name, {
         title: '오늘 과업 인증 마감 임박',
         body: `아직 인증 안 한 항목: ${incompleteByTrainer[name].join(', ')}`,
-        url: '/',
+        page: 'task',
       })
     }
 
@@ -36,7 +36,7 @@ export default async function handler(req, res) {
       await sendPush('원장님', {
         title: '오늘 과업 인증 미완료',
         body: summary,
-        url: '/',
+        page: 'task',
       })
     }
 
