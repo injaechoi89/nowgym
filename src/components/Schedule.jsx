@@ -1,6 +1,6 @@
 import {useState} from 'react'
 import {useSyncedState} from '../useSyncedState.js'
-import {TODAY,ML,WD,TRAINERS,VAC_DATA,HOL_RECORDS_INIT,fmt,fmtDate,isPast} from '../data.js'
+import {TODAY,ML,WD,TRAINERS,VAC_DATA,HOL_RECORDS_INIT,VACATION_QUOTA_INIT,fmt,fmtDate,isPast} from '../data.js'
 import {HOL_TYPES,HOL_TYPE_COLOR,holidayBonusAmount,recordBonusAmount,holidayLabel} from '../holSettings.js'
 const holAmt = holidayBonusAmount
 const holLbl = holidayLabel
@@ -15,6 +15,7 @@ export default function Schedule({role, myTrainer}) {
   const [year, setYear] = useState(TODAY.getFullYear())
   const [month, setMonth] = useState(TODAY.getMonth())
   const [vacData, setVacData] = useSyncedState('nowgym-vacations', VAC_DATA)
+  const [vacQuota] = useSyncedState('nowgym-vacation-quota', VACATION_QUOTA_INIT)
   const [holRecs, setHolRecs] = useSyncedState('nowgym-holiday-work', HOL_RECORDS_INIT)
   const [holModal, setHolModal] = useState(null)
   const [holSelTrainer, setHolSelTrainer] = useState('정우')
@@ -23,9 +24,10 @@ export default function Schedule({role, myTrainer}) {
   const amtForType = (t, rec) => t==='normal' ? 0 : (rec && rec.type===t ? recordBonusAmount(rec) : holAmt(t))
   const changeMonth = d=>{let m=month+d,y=year;if(m>11){m=0;y++}if(m<0){m=11;y--}setMonth(m);setYear(y)}
   const vacs = vacData[effectiveTrainer]||[]
+  const quota = vacQuota[effectiveTrainer] ?? 12
   const used = vacs.filter(k=>{const p=k.split('-');return isPast(new Date(+p[0],+p[1]-1,+p[2]))}).length
   const upcoming = vacs.filter(k=>{const p=k.split('-');return !isPast(new Date(+p[0],+p[1]-1,+p[2]))}).length
-  const remain = 12-used-upcoming
+  const remain = quota-used-upcoming
   const monthRecs = holRecs.filter(r=>{const p=r.date.split('-');return +p[0]===year&&+p[1]===month+1})
   const holTotal = monthRecs.reduce((a,r)=>a+recordBonusAmount(r),0)
   const fd = new Date(year,month,1).getDay()
@@ -51,12 +53,12 @@ export default function Schedule({role, myTrainer}) {
             </div>
             <div className="card" style={{marginBottom:12}}>
               <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-end',marginBottom:8}}>
-                <div style={{display:'flex',alignItems:'baseline',gap:4}}><span style={{fontSize:32,fontWeight:500}}>{used}</span><span style={{fontSize:13,color:'var(--text3)'}}>/ 12일 사용</span></div>
+                <div style={{display:'flex',alignItems:'baseline',gap:4}}><span style={{fontSize:32,fontWeight:500}}>{used}</span><span style={{fontSize:13,color:'var(--text3)'}}>/ {quota}일 사용</span></div>
                 <span className="badge badge-g">{remain}일 남음</span>
               </div>
-              <div className="bar-bg"><div className="bar-fill" style={{width:Math.round((used+upcoming)/12*100)+'%',background:'var(--green)'}}></div></div>
+              <div className="bar-bg"><div className="bar-fill" style={{width:(quota?Math.round((used+upcoming)/quota*100):0)+'%',background:'var(--green)'}}></div></div>
               <div style={{display:'flex',gap:4,flexWrap:'wrap',marginTop:8}}>
-                {Array(12).fill(0).map((_,i)=><div key={i} style={{width:22,height:22,borderRadius:'50%',border:'1.5px solid var(--border)',background:i<used?'var(--green)':i<used+upcoming?'var(--amber-light)':'var(--surface1)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:9,color:i<used?'#fff':i<used+upcoming?'var(--amber)':'var(--text3)'}}>{i+1}</div>)}
+                {Array(quota).fill(0).map((_,i)=><div key={i} style={{width:22,height:22,borderRadius:'50%',border:'1.5px solid var(--border)',background:i<used?'var(--green)':i<used+upcoming?'var(--amber-light)':'var(--surface1)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:9,color:i<used?'#fff':i<used+upcoming?'var(--amber)':'var(--text3)'}}>{i+1}</div>)}
               </div>
             </div>
             <div className="card">
@@ -75,14 +77,14 @@ export default function Schedule({role, myTrainer}) {
                   const past=isPast(new Date(year,month,d))
                   const isToday=d===TODAY.getDate()&&month===TODAY.getMonth()&&year===TODAY.getFullYear()
                   const dw=new Date(year,month,d).getDay()
-                  const atLimit = used+upcoming>=12
+                  const atLimit = used+upcoming>=quota
                   return (
                     <div key={i} className={`cc${isVac&&past?' vac-used':isVac?' vac-up':''}${isToday?' today':''}`}
                       style={{opacity:(past&&onVacAll.length===0)||(atLimit&&!isVac&&!past)?0.4:1,cursor:canEditVac&&!(atLimit&&!isVac&&!past)?'pointer':'default'}}
                       onClick={()=>{
                         if(!canEditVac)return
                         if(!past&&!isVac){
-                          if(used+upcoming>=12){alert('휴가는 연간 12일까지만 사용할 수 있어요.');return}
+                          if(used+upcoming>=quota){alert(`휴가는 연간 ${quota}일까지만 사용할 수 있어요.`);return}
                           setVacData(v=>({...v,[effectiveTrainer]:[...v[effectiveTrainer],k]}))
                         }
                         else if(isVac&&!past){setVacData(v=>({...v,[effectiveTrainer]:v[effectiveTrainer].filter(x=>x!==k)}))}

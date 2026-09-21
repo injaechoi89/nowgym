@@ -3,7 +3,7 @@ import { IDENTITIES, setPin } from '../auth.js'
 import { getHolBonusSettings, setHolBonusSettings, subscribeHolBonusSettings } from '../holSettings.js'
 import { getPtHoursSettings, setPtHoursSettingsFor, subscribePtHoursSettings } from '../ptHoursSettings.js'
 import { useSyncedState } from '../useSyncedState.js'
-import { EXERCISES_INIT, PRODUCTS_INIT, TRAINERS, SALARY_POLICY_INIT } from '../data.js'
+import { EXERCISES_INIT, PRODUCTS_INIT, TRAINERS, SALARY_POLICY_INIT, VACATION_QUOTA_INIT } from '../data.js'
 import { readFileAsDataUrl, processImage } from '../photoUtils.js'
 
 const emptyExForm = () => ({id:null,category:'',name:'',desc:'',imageUrl:'',videoUrl:''})
@@ -31,6 +31,7 @@ export default function Settings({ role, myTrainer }) {
   const [prodForm, setProdForm] = useState(null)
   const [salaryPolicies, setSalaryPolicies] = useSyncedState('nowgym-salary-policy', SALARY_POLICY_INIT)
   const [salaryForm, setSalaryForm] = useState(null)
+  const [vacQuota, setVacQuota] = useSyncedState('nowgym-vacation-quota', VACATION_QUOTA_INIT)
 
   useEffect(() => subscribeHolBonusSettings(setHolSettingsState), [])
   useEffect(() => subscribePtHoursSettings(setPtHoursAllState), [])
@@ -365,6 +366,19 @@ export default function Settings({ role, myTrainer }) {
               <span style={{fontSize:13,color:'var(--text3)'}}>원</span>
             </div>
             <button className="btn btn-g" style={{marginTop:10}} onClick={saveHolSettings}>추가금 저장</button>
+          </div>
+          <div className="card" style={{marginBottom:14}}>
+            <div className="card-title">선생님별 연차 일수</div>
+            <p style={{fontSize:13,color:'var(--text3)',marginBottom:14}}>
+              스케줄 &gt; 휴가에서 각 트레이너가 사용할 수 있는 연간 휴가 일수입니다. 트레이너마다 다르게 설정할 수 있어요.
+            </p>
+            {TRAINERS.map(t => (
+              <div key={t.name} className="rrow" style={{gap:10}}>
+                <span className="rl" style={{minWidth:80}}>{t.name}</span>
+                <input type="number" value={vacQuota[t.name] ?? 12} onChange={e=>setVacQuota(q=>({...q, [t.name]: Number(e.target.value)||0}))} style={{flex:1,textAlign:'right'}} />
+                <span style={{fontSize:13,color:'var(--text3)'}}>일</span>
+              </div>
+            ))}
           </div>
           <div className="card">
             <div className="card-title">로그인 PIN 관리</div>

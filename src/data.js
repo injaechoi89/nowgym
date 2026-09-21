@@ -10,6 +10,8 @@ export const TRAINERS = [
   {name:'건호', short:'건호', av:'av2'},
   {name:'인재', short:'인재', av:'av3'},
 ];
+// 트레이너별 연간 휴가 일수. 원장님이 설정에서 각자 다르게 지정할 수 있습니다.
+export const VACATION_QUOTA_INIT = {정우:12, 준혁:12, 건호:12, 인재:12}
 // 회원이 로그인 없이 본인 운동일지를 볼 수 있는 링크에 쓰는, 추측하기 어려운 토큰을 만듭니다.
 export function genToken(){
   return crypto.randomUUID ? crypto.randomUUID().replace(/-/g,'') : Math.random().toString(36).slice(2)+Date.now().toString(36)
