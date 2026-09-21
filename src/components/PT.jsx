@@ -145,12 +145,14 @@ export default function PT({role, myTrainer, onOpenDiary}) {
 
   return (
     <div>
-      <div style={{display:'flex',gap:8,marginBottom:16,flexWrap:'wrap'}}>
-        {(isOwner?TRAINERS:TRAINERS.filter(t=>t.name===myTrainer)).map(t=>(
-          <button key={t.name} className={`btn ${effectiveTrainer===t.name?'btn-g':'btn-outline'}`} onClick={()=>isOwner&&setTrainer(t.name)}>{t.name}</button>
-        ))}
-        {isOwner&&<button className="btn btn-danger" style={{marginLeft:'auto'}} onClick={resetAllSchedules}>전체 일정 삭제</button>}
-      </div>
+      {isOwner&&(
+        <div style={{display:'flex',gap:8,marginBottom:16,flexWrap:'wrap'}}>
+          {TRAINERS.map(t=>(
+            <button key={t.name} className={`btn ${effectiveTrainer===t.name?'btn-g':'btn-outline'}`} onClick={()=>setTrainer(t.name)}>{t.name}</button>
+          ))}
+          <button className="btn btn-danger" style={{marginLeft:'auto'}} onClick={resetAllSchedules}>전체 일정 삭제</button>
+        </div>
+      )}
       <div className="metric-grid" style={{gridTemplateColumns:'repeat(4,1fr)',marginBottom:16}}>
         <div className="metric"><div className="metric-label" style={{display:'flex',alignItems:'center',gap:5}}><span style={{width:9,height:9,borderRadius:'50%',background:'#D4537E',display:'inline-block'}}></span>하프PT</div><div className="metric-val">{half}회 <span style={{fontSize:13,fontWeight:400,color:'var(--text3)'}}>/ {monthStats.mHalf}회</span></div><div className="metric-sub">이번주 / 이번달</div></div>
         <div className="metric"><div className="metric-label" style={{display:'flex',alignItems:'center',gap:5}}><span style={{width:9,height:9,borderRadius:'50%',background:'#378ADD',display:'inline-block'}}></span>일반PT</div><div className="metric-val">{full}회 <span style={{fontSize:13,fontWeight:400,color:'var(--text3)'}}>/ {monthStats.mFull}회</span></div><div className="metric-sub">이번주 / 이번달</div></div>

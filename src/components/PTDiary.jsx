@@ -167,7 +167,7 @@ export default function PTDiary({role, myTrainer, diaryJump, onDiaryJumpHandled}
   return (
     <div>
       <div style={{display:'flex',gap:8,marginBottom:16,alignItems:'center'}}>
-        {(isOwner?TRAINERS:TRAINERS.filter(t=>t.name===myTrainer)).map(t=><button key={t.name} className={`btn ${effectiveTrainer===t.name?'btn-g':'btn-outline'}`} onClick={()=>{if(isOwner){setTrainer(t.name);openMemberList()}}}>{t.name}</button>)}
+        {isOwner&&TRAINERS.map(t=><button key={t.name} className={`btn ${effectiveTrainer===t.name?'btn-g':'btn-outline'}`} onClick={()=>{setTrainer(t.name);openMemberList()}}>{t.name}</button>)}
         {view!=='members'&&<button className="btn btn-outline" style={{marginLeft:'auto'}} onClick={goBack}>← {view==='calendar'?'회원 목록':'달력으로'}</button>}
       </div>
       {view==='members'&&(
