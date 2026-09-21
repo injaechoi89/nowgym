@@ -111,10 +111,10 @@ export default function PTDiary({role, myTrainer, diaryJump, onDiaryJumpHandled}
     setView('calendar')
   }
   const openKk=l=>{
-    const exLines=l.exs.map(e=>{
-      const setsStr=e.sets.map((s,i)=>`${i+1}세트 ${s.w>0?s.w+'kg ':''}${s.r}${s.u||'회'}`).join(', ')
-      return `  • ${e.name}: ${e.sets.length}세트 (${setsStr})`
-    }).join('\n')
+    const exLines=l.exs.map((e,i)=>{
+      const setsStr=e.sets.map((s,si)=>`${si+1}세트 ${s.w>0?s.w+'kg ':''}${s.r}${s.u||'회'}`).join(', ')
+      return `${i+1}) ${e.name} — ${e.sets.length}세트\n   ${setsStr}`
+    }).join('\n\n')
     let member=members.find(m=>m.name===l.memberName)
     if(member&&!member.token){
       const newToken=genToken()
