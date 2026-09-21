@@ -140,7 +140,7 @@ export default function App() {
               {notifOpen && (
                 <>
                   <div style={{position:'fixed',inset:0,zIndex:40}} onClick={()=>setNotifOpen(false)}></div>
-                  <div className="card" style={{position:'absolute',top:'calc(100% + 8px)',right:0,width:320,maxHeight:420,overflowY:'auto',padding:0,zIndex:41,boxShadow:'0 8px 24px rgba(0,0,0,0.15)'}}>
+                  <div className="card" style={{position:'fixed',top:64,left:12,right:12,maxWidth:360,marginLeft:'auto',maxHeight:'70vh',overflowY:'auto',padding:0,zIndex:41,boxShadow:'0 8px 24px rgba(0,0,0,0.15)'}}>
                     <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'12px 14px',borderBottom:'0.5px solid var(--border)'}}>
                       <span style={{fontSize:13,fontWeight:600}}>알림</span>
                       {unreadCount>0 && <button className="btn btn-outline" style={{padding:'3px 8px',fontSize:11}} onClick={onMarkAllRead}>모두 읽음</button>}
