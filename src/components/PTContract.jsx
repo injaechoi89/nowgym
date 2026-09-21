@@ -24,12 +24,16 @@ export default function PTContract({role, myTrainer}) {
   const openNew=()=>{setForm({name:'',phone:'',birth:'',gender:'남',trainer:isOwner?'인재':myTrainer,goal:'',regType:'신규',payMethod:'카드',start:toDateInput(TODAY),actual:'',staff:isOwner?'인재':myTrainer,productId:'f10'});setCur(null);setRenewMode(false);setEditContractId(null);setView('form')}
   const openRenew=m=>{setForm({name:m.name,phone:m.phone,birth:m.birth,gender:m.gender,trainer:m.trainer,goal:m.goal||'',regType:'재등록',payMethod:m.payMethod,start:toDateInput(TODAY),actual:'',staff:m.staff,productId:m.product.id});setCur(m);setRenewMode(true);setEditContractId(null);setView('form')}
   const openEditContract=(m,c)=>{setForm({name:m.name,phone:m.phone,birth:m.birth,gender:m.gender,trainer:m.trainer,goal:m.goal||'',regType:c.regType,payMethod:c.payMethod,start:toDateInput(c.start),actual:c.actual,staff:c.staff,productId:c.product.id});setCur(m);setRenewMode(false);setEditContractId(c.id);setView('form')}
+  const notifyNewMember=(name,trainer,regType)=>{
+    fetch('/api/notify-new-member',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,trainer,regType})}).catch(()=>{})
+  }
   const saveForm=()=>{
     const p=form.start.split('-'); const sd=new Date(+p[0],+p[1]-1,+p[2])
     if(cur&&renewMode){
       const newContract={id:'c'+Date.now(),product:selProd,regType:form.regType,payMethod:form.payMethod,start:sd,actual,staff:form.staff}
       const nm={...cur,name:form.name||cur.name,phone:form.phone||cur.phone,birth:form.birth,gender:form.gender,trainer:form.trainer,goal:form.goal,product:selProd,regType:form.regType,payMethod:form.payMethod,start:sd,actual,staff:form.staff,contracts:[...(cur.contracts||[]),newContract]}
       setMembers(ms=>ms.map(m=>m.id===cur.id?nm:m))
+      notifyNewMember(nm.name,nm.trainer,form.regType)
       setRenewMode(false); setView('preview'); setCur(nm)
       return
     }
@@ -45,6 +49,7 @@ export default function PTContract({role, myTrainer}) {
     const newContract={id:'c'+Date.now(),product:selProd,regType:form.regType,payMethod:form.payMethod,start:sd,actual,staff:form.staff}
     const nm={id:Date.now(),name:form.name||'홍길동',phone:form.phone||'010-0000-0000',birth:form.birth,gender:form.gender,trainer:form.trainer,goal:form.goal,product:selProd,regType:form.regType,payMethod:form.payMethod,start:sd,actual,staff:form.staff,contracts:[newContract],token:genToken()}
     setMembers(ms=>[...ms,nm])
+    notifyNewMember(nm.name,nm.trainer,form.regType)
     setView('preview'); setCur(nm)
   }
   const openKk=(type)=>{

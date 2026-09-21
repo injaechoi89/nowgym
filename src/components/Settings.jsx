@@ -5,6 +5,7 @@ import { getPtHoursSettings, setPtHoursSettingsFor, subscribePtHoursSettings } f
 import { useSyncedState } from '../useSyncedState.js'
 import { EXERCISES_INIT, PRODUCTS_INIT, TRAINERS, SALARY_POLICY_INIT, VACATION_QUOTA_INIT } from '../data.js'
 import { readFileAsDataUrl, processImage } from '../photoUtils.js'
+import { enablePush, getPushStatus } from '../push.js'
 
 const emptyExForm = () => ({id:null,category:'',name:'',desc:'',imageUrl:'',videoUrl:''})
 const emptyProdForm = () => ({id:null,type:'full',name:'',count:'',weeks:'',price:''})
@@ -33,9 +34,26 @@ export default function Settings({ role, myTrainer }) {
   const [salaryPolicies, setSalaryPolicies] = useSyncedState('nowgym-salary-policy', SALARY_POLICY_INIT)
   const [salaryForm, setSalaryForm] = useState(null)
   const [vacQuota, setVacQuota] = useSyncedState('nowgym-vacation-quota', VACATION_QUOTA_INIT)
+  const [pushStatus, setPushStatus] = useState('default')
+  const [pushBusy, setPushBusy] = useState(false)
+  const [pushMsg, setPushMsg] = useState('')
 
   useEffect(() => subscribeHolBonusSettings(setHolSettingsState), [])
   useEffect(() => subscribePtHoursSettings(setPtHoursAllState), [])
+  useEffect(() => { getPushStatus().then(setPushStatus) }, [])
+
+  const onEnablePush = async () => {
+    setPushBusy(true); setPushMsg('')
+    try {
+      await enablePush(myIdentity)
+      setPushStatus('granted')
+      setPushMsg('알림이 켜졌어요!')
+    } catch (e) {
+      setPushMsg(e.message || '알림 설정에 실패했어요.')
+    } finally {
+      setPushBusy(false)
+    }
+  }
 
   const save = async (id) => {
     const val = (inputs[id]||'').trim()
@@ -235,6 +253,22 @@ export default function Settings({ role, myTrainer }) {
               />
               <button className="btn btn-g" style={{padding:'6px 14px',fontSize:12}} onClick={()=>save(myIdentity)}>변경</button>
             </div>
+          </div>
+          <div className="card" style={{marginBottom:14}}>
+            <div className="card-title">🔔 알림 받기</div>
+            <p style={{fontSize:13,color:'var(--text3)',marginBottom:14}}>
+              오늘 PT 일정, 과업 인증 알림, 휴일근무 안내 등을 이 기기로 푸시 알림 받을 수 있어요. 한 번만 켜두면 돼요.
+            </p>
+            {pushMsg && <div style={{fontSize:13,color:pushStatus==='granted'?'var(--green)':'#E05A2B',marginBottom:10}}>{pushMsg}</div>}
+            {pushStatus==='unsupported' ? (
+              <div style={{fontSize:13,color:'var(--text3)'}}>이 브라우저(또는 앱 설치 전 상태)에서는 알림을 지원하지 않아요.</div>
+            ) : pushStatus==='denied' ? (
+              <div style={{fontSize:13,color:'var(--text3)'}}>브라우저에서 알림 권한이 차단되어 있어요. 브라우저 설정에서 이 사이트의 알림 권한을 허용한 뒤 다시 시도해주세요.</div>
+            ) : pushStatus==='granted' ? (
+              <div style={{fontSize:13,color:'var(--green)'}}>✓ 이 기기에서 알림이 켜져 있어요.</div>
+            ) : (
+              <button className="btn btn-g" disabled={pushBusy} onClick={onEnablePush}>{pushBusy?'설정 중...':'이 기기에서 알림 켜기'}</button>
+            )}
           </div>
           <div className="card" style={{marginBottom:14}}>
             <div className="card-title">PT 시간표 운영시간</div>
