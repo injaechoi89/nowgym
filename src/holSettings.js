@@ -35,6 +35,13 @@ export function holidayBonusAmount(type) {
   return settings[type] || 0
 }
 
+// 근무 기록 한 건의 추가금. 등록 당시 직접 입력한 금액(amount)이 있으면 그 값을 쓰고,
+// 없으면(예전 기록) 그 유형의 기본 설정값을 그대로 씁니다.
+export function recordBonusAmount(rec) {
+  if (rec.type === 'normal') return 0
+  return rec.amount != null ? rec.amount : holidayBonusAmount(rec.type)
+}
+
 export function holidayLabel(type) {
   return HOL_TYPE_LABEL[type] || type
 }

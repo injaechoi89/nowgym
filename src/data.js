@@ -1,4 +1,4 @@
-import { holidayBonusAmount } from './holSettings.js'
+import { recordBonusAmount } from './holSettings.js'
 
 export const TODAY = new Date();
 export const ML = ['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'];
@@ -113,7 +113,7 @@ export function sumHolidayBonus(holRecs, trainerName, year, month) {
       const p = r.date.split('-')
       return +p[0]===year && +p[1]===month
     })
-    .reduce((sum, r) => sum + holidayBonusAmount(r.type), 0)
+    .reduce((sum, r) => sum + recordBonusAmount(r), 0)
 }
 
 // 분기(3,6,9,12월) 마지막 달에만 지급되는 분기 매출 인센티브. 그 분기 3개월 매출 합산(만원 단위)으로 구간을 찾습니다.

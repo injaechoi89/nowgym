@@ -1,7 +1,7 @@
 import {useState} from 'react'
 import {useSyncedState} from '../useSyncedState.js'
 import {TODAY,ML,WD,TRAINERS,VAC_DATA,HOL_RECORDS_INIT,fmt,fmtDate,isPast} from '../data.js'
-import {HOL_TYPES,HOL_TYPE_COLOR,holidayBonusAmount,holidayLabel} from '../holSettings.js'
+import {HOL_TYPES,HOL_TYPE_COLOR,holidayBonusAmount,recordBonusAmount,holidayLabel} from '../holSettings.js'
 const holAmt = holidayBonusAmount
 const holLbl = holidayLabel
 function holColor(t){return HOL_TYPE_COLOR[t]||'#8b8fa3';}
@@ -19,13 +19,15 @@ export default function Schedule({role, myTrainer}) {
   const [holModal, setHolModal] = useState(null)
   const [holSelTrainer, setHolSelTrainer] = useState('정우')
   const [holSelType, setHolSelType] = useState('normal')
+  const [holSelAmt, setHolSelAmt] = useState(0)
+  const amtForType = (t, rec) => t==='normal' ? 0 : (rec && rec.type===t ? recordBonusAmount(rec) : holAmt(t))
   const changeMonth = d=>{let m=month+d,y=year;if(m>11){m=0;y++}if(m<0){m=11;y--}setMonth(m);setYear(y)}
   const vacs = vacData[effectiveTrainer]||[]
   const used = vacs.filter(k=>{const p=k.split('-');return isPast(new Date(+p[0],+p[1]-1,+p[2]))}).length
   const upcoming = vacs.filter(k=>{const p=k.split('-');return !isPast(new Date(+p[0],+p[1]-1,+p[2]))}).length
   const remain = 12-used-upcoming
   const monthRecs = holRecs.filter(r=>{const p=r.date.split('-');return +p[0]===year&&+p[1]===month+1})
-  const holTotal = monthRecs.reduce((a,r)=>a+holAmt(r.type),0)
+  const holTotal = monthRecs.reduce((a,r)=>a+recordBonusAmount(r),0)
   const fd = new Date(year,month,1).getDay()
   const dim = new Date(year,month+1,0).getDate()
   return (
@@ -124,7 +126,7 @@ export default function Schedule({role, myTrainer}) {
               <div style={{color:'#fff',fontSize:13,opacity:.85,marginBottom:4}}>{ML[month]} 휴일 근무 추가금 합계</div>
               <div style={{color:'#fff',fontSize:28,fontWeight:600}}>{fmt(holTotal)}</div>
               <div style={{display:'flex',gap:8,marginTop:8,flexWrap:'wrap'}}>
-                {TRAINERS.map(tr=>{const cnt=monthRecs.filter(r=>r.trainerName===tr.name).length;const amt=monthRecs.filter(r=>r.trainerName===tr.name).reduce((a,r)=>a+holAmt(r.type),0);return cnt>0?<span key={tr.name} style={{fontSize:11,background:'rgba(255,255,255,.2)',color:'#fff',borderRadius:20,padding:'2px 10px'}}>{tr.short} {cnt}일 +{fmt(amt)}</span>:null})}
+                {TRAINERS.map(tr=>{const cnt=monthRecs.filter(r=>r.trainerName===tr.name).length;const amt=monthRecs.filter(r=>r.trainerName===tr.name).reduce((a,r)=>a+recordBonusAmount(r),0);return cnt>0?<span key={tr.name} style={{fontSize:11,background:'rgba(255,255,255,.2)',color:'#fff',borderRadius:20,padding:'2px 10px'}}>{tr.short} {cnt}일 +{fmt(amt)}</span>:null})}
               </div>
             </div>
             <div className="card">
@@ -149,7 +151,7 @@ export default function Schedule({role, myTrainer}) {
                   return (
                     <div key={i} className={`cc hday${rec?' worked':''}${isToday?' today':''}`}
                       style={{cursor:lockedOut?'default':'pointer'}}
-                      onClick={()=>{if(lockedOut)return;setHolSelTrainer(rec?rec.trainerName:(isOwner?'정우':myTrainer));setHolSelType(rec?rec.type:'normal');setHolModal({k,d,rec})}}>
+                      onClick={()=>{if(lockedOut)return;setHolSelTrainer(rec?rec.trainerName:(isOwner?'정우':myTrainer));const t=rec?rec.type:'normal';setHolSelType(t);setHolSelAmt(amtForType(t,rec));setHolModal({k,d,rec})}}>
                       <div className={`cdn${dw===0?' s':dw===6?' sa':''}`}>{d}</div>
                       {rec&&<div style={{fontSize:9,fontWeight:600,borderRadius:3,padding:'1px 3px',background:'#E1F5EE',color:'#085041'}}>{rec.trainerName.slice(0,2)}</div>}
                       {rec&&<div style={{width:6,height:6,borderRadius:'50%',background:holColor(rec.type)}}></div>}
@@ -171,16 +173,27 @@ export default function Schedule({role, myTrainer}) {
             </div>
             <div style={{fontSize:12,color:'var(--text3)',marginBottom:6}}>휴일 유형</div>
             <div style={{display:'flex',gap:8,marginBottom:12}}>
-              {HOL_TYPES.map(t=><button key={t} style={{flex:1,padding:'8px 4px',border:'1.5px solid '+(holSelType===t?'#E05A2B':'var(--border)'),borderRadius:'var(--radius)',background:holSelType===t?'var(--orange-light)':'transparent',cursor:'pointer',fontSize:12,fontWeight:500,color:holSelType===t?'#E05A2B':'var(--text2)'}} onClick={()=>setHolSelType(t)}>{holLbl(t)}<br/><span style={{fontSize:10,opacity:.7}}>{holAmt(t)>0?'+'+fmt(holAmt(t)):'추가금 없음'}</span></button>)}
+              {HOL_TYPES.map(t=>{
+                const shown = t===holSelType ? holSelAmt : amtForType(t, holModal.rec)
+                return <button key={t} style={{flex:1,padding:'8px 4px',border:'1.5px solid '+(holSelType===t?'#E05A2B':'var(--border)'),borderRadius:'var(--radius)',background:holSelType===t?'var(--orange-light)':'transparent',cursor:'pointer',fontSize:12,fontWeight:500,color:holSelType===t?'#E05A2B':'var(--text2)'}} onClick={()=>{setHolSelType(t);setHolSelAmt(amtForType(t,holModal.rec))}}>{holLbl(t)}<br/><span style={{fontSize:10,opacity:.7}}>{shown>0?'+'+fmt(shown):'추가금 없음'}</span></button>
+              })}
             </div>
-            <div style={{background:'var(--surface1)',borderRadius:'var(--radius)',padding:'10px 14px',display:'flex',justifyContent:'space-between',marginBottom:12}}>
+            <div style={{background:'var(--surface1)',borderRadius:'var(--radius)',padding:'10px 14px',display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:12,gap:10}}>
               <span style={{fontSize:13,color:'var(--text3)'}}>추가금</span>
-              <span style={{fontWeight:600,color:'#E05A2B'}}>{holAmt(holSelType)>0?'+'+fmt(holAmt(holSelType)):'없음'}</span>
+              {holSelType==='normal' ? (
+                <span style={{fontWeight:600,color:'var(--text3)'}}>없음</span>
+              ) : (
+                <div style={{display:'flex',alignItems:'center',gap:4}}>
+                  <span style={{fontWeight:600,color:'#E05A2B'}}>+</span>
+                  <input type="number" value={holSelAmt} onChange={e=>setHolSelAmt(Number(e.target.value)||0)} style={{width:100,textAlign:'right',fontWeight:600,color:'#E05A2B',border:'0.5px solid var(--border-strong)',borderRadius:'var(--radius)',padding:'4px 8px',background:'var(--surface)'}} />
+                  <span style={{fontSize:13,color:'var(--text3)'}}>원</span>
+                </div>
+              )}
             </div>
             <div className="modal-btns">
               <button className="btn btn-outline" onClick={()=>setHolModal(null)}>취소</button>
               {holModal.rec&&<button className="btn btn-danger" onClick={()=>{setHolRecs(r=>r.filter(x=>x.date!==holModal.k));setHolModal(null)}}>삭제</button>}
-              <button className="btn btn-g" onClick={()=>{setHolRecs(r=>[...r.filter(x=>x.date!==holModal.k),{date:holModal.k,trainerName:holSelTrainer,type:holSelType}]);setHolModal(null)}}>등록 완료</button>
+              <button className="btn btn-g" onClick={()=>{setHolRecs(r=>[...r.filter(x=>x.date!==holModal.k),{date:holModal.k,trainerName:holSelTrainer,type:holSelType,amount:holSelType==='normal'?0:holSelAmt}]);setHolModal(null)}}>등록 완료</button>
             </div>
           </div>
         </div>
