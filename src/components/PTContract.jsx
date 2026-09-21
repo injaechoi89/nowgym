@@ -130,8 +130,8 @@ export default function PTContract({role, myTrainer}) {
               placeholder="🔍 이름 또는 전화번호로 검색"
               style={{flex:1,minWidth:0}}
             />
-            <button className="btn btn-outline" onClick={exportCSV}>⬇ 엑셀 내보내기</button>
-            <button className="btn btn-g" onClick={openNew}>+ 신규 등록</button>
+            <button className="btn btn-outline" style={{padding:'6px 10px',fontSize:12,flexShrink:0}} onClick={exportCSV}>⬇ 엑셀 저장</button>
+            <button className="btn btn-g" style={{flexShrink:0}} onClick={openNew}>+ 신규 등록</button>
           </div>
           {visibleMembers.length===0&&<div className="empty-state">{searchQ?'검색 결과가 없어요.':'등록된 회원이 없어요.'}</div>}
           <div className="grid-2">
