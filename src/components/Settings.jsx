@@ -18,6 +18,7 @@ const emptySalaryForm = () => ({
 export default function Settings({ role, myTrainer }) {
   const isOwner = role === '원장님'
   const creatorId = isOwner ? '원장님' : myTrainer
+  const myIdentity = isOwner ? '원장님' : myTrainer
   const [inputs, setInputs] = useState(Object.fromEntries(IDENTITIES.map(id => [id, ''])))
   const [savedMsg, setSavedMsg] = useState('')
   const [holSettings, setHolSettingsState] = useState(getHolBonusSettings())
@@ -216,6 +217,26 @@ export default function Settings({ role, myTrainer }) {
       {tab==='general' && (
         <>
           <div className="card" style={{marginBottom:14}}>
+            <div className="card-title">내 로그인 비밀번호 변경</div>
+            <p style={{fontSize:13,color:'var(--text3)',marginBottom:14}}>
+              로그인에 사용하는 4자리 PIN을 변경합니다.
+            </p>
+            {savedMsg && savedMsg.startsWith(myIdentity) && <div style={{fontSize:13,color:'var(--green)',marginBottom:10}}>{savedMsg}</div>}
+            <div className="rrow" style={{gap:10}}>
+              <span className="rl" style={{minWidth:80}}>{myIdentity==='원장님'?'👑 원장님':`${myIdentity} 선생님`}</span>
+              <input
+                type="password"
+                inputMode="numeric"
+                maxLength={4}
+                placeholder="새 PIN 4자리"
+                value={inputs[myIdentity]}
+                onChange={e=>setInputs(f=>({...f, [myIdentity]: e.target.value.replace(/\D/g,'')}))}
+                style={{flex:1,textAlign:'center',letterSpacing:6}}
+              />
+              <button className="btn btn-g" style={{padding:'6px 14px',fontSize:12}} onClick={()=>save(myIdentity)}>변경</button>
+            </div>
+          </div>
+          <div className="card" style={{marginBottom:14}}>
             <div className="card-title">PT 시간표 운영시간</div>
             <p style={{fontSize:13,color:'var(--text3)',marginBottom:14}}>
               PT 시간표에 표시되는 하루 시작/끝 시간입니다. 트레이너마다 근무시간이 다르면 각자 따로 설정할 수 있어요. 30분 단위로 칸이 생성됩니다.
@@ -381,9 +402,9 @@ export default function Settings({ role, myTrainer }) {
             ))}
           </div>
           <div className="card">
-            <div className="card-title">로그인 PIN 관리</div>
+            <div className="card-title">전체 로그인 PIN 관리</div>
             <p style={{fontSize:13,color:'var(--text3)',marginBottom:14}}>
-              각 트레이너/원장님 로그인용 PIN(4자리 숫자)을 바꿀 수 있습니다. 트레이너에게는 개별적으로 새 PIN을 안내해주세요.
+              각 트레이너/원장님의 로그인 PIN을 새로 설정할 수 있습니다. 기존 PIN을 몰라도 바꿀 수 있어요 — 잊어버렸을 때 여기서 새 PIN으로 바꿔주세요.
             </p>
             {savedMsg && <div style={{fontSize:13,color:'var(--green)',marginBottom:10}}>{savedMsg}</div>}
             {IDENTITIES.map(id => (
