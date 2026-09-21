@@ -27,7 +27,10 @@ export default function PTDiary({role, myTrainer, diaryJump, onDiaryJumpHandled}
   const [exModal, setExModal] = useState(false)
   const [exInfo, setExInfo] = useState(null)
   const [kkModal, setKkModal] = useState(null)
+  const [search, setSearch] = useState('')
   const myMembers = members.filter(m=>m.trainer===effectiveTrainer)
+  const searchQ = search.trim().toLowerCase()
+  const shownMembers = !searchQ ? myMembers : myMembers.filter(m=>m.name.toLowerCase().includes(searchQ))
   const selMember = myMembers.find(m=>m.name===selMemberName)
   const exByCat = {}; exercises.forEach(e=>{(exByCat[e.category]=exByCat[e.category]||[]).push(e)})
   const trLogs = (logs[effectiveTrainer]||[]).map(l=>l.date instanceof Date?l:{...l,date:new Date(l.date)})
@@ -168,9 +171,20 @@ export default function PTDiary({role, myTrainer, diaryJump, onDiaryJumpHandled}
         {view!=='members'&&<button className="btn btn-outline" style={{marginLeft:'auto'}} onClick={goBack}>← {view==='calendar'?'회원 목록':'달력으로'}</button>}
       </div>
       {view==='members'&&(
-        <div className="grid-2">
+        <div>
+          {myMembers.length>0&&(
+            <input
+              type="text"
+              value={search}
+              onChange={e=>setSearch(e.target.value)}
+              placeholder="🔍 회원 이름으로 검색"
+              style={{width:'100%',marginBottom:14,boxSizing:'border-box'}}
+            />
+          )}
+          <div className="grid-2">
           {myMembers.length===0&&<div style={{textAlign:'center',padding:'2rem',color:'var(--text3)',fontSize:13}}>{effectiveTrainer} 담당 PT 회원이 없어요. 먼저 PT회원 관리에서 등록해주세요.</div>}
-          {myMembers.map(m=>{
+          {myMembers.length>0&&shownMembers.length===0&&<div style={{textAlign:'center',padding:'2rem',color:'var(--text3)',fontSize:13}}>검색 결과가 없어요.</div>}
+          {shownMembers.map(m=>{
             const cnt=trLogs.filter(l=>l.memberName===m.name).length
             return (
               <div key={m.id} className="card" style={{cursor:'pointer'}} onClick={()=>openMember(m.name)}>
@@ -185,6 +199,7 @@ export default function PTDiary({role, myTrainer, diaryJump, onDiaryJumpHandled}
               </div>
             )
           })}
+          </div>
         </div>
       )}
       {view==='calendar'&&selMember&&(
