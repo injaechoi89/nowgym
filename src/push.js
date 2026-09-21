@@ -1,4 +1,4 @@
-import { doc, getDoc, setDoc, arrayUnion } from 'firebase/firestore'
+import { doc, getDoc, setDoc, arrayUnion, arrayRemove } from 'firebase/firestore'
 import { getMessaging, getToken, isSupported, onMessage } from 'firebase/messaging'
 import { app, db } from './firebase.js'
 
@@ -6,17 +6,26 @@ const VAPID_KEY = import.meta.env.VITE_FIREBASE_VAPID_KEY
 
 // identity별 알림 수신 기기 토큰 모음. 문서 하나 = 트레이너(또는 원장님) 한 명.
 const COLLECTION = 'push_tokens'
+// 이 기기에서 마지막으로 저장한 토큰을 기억해뒀다가, 다음에 발급받은 토큰이 다르면
+// (같은 기기인데 값만 바뀐 것) 옛날 값은 지우고 새 값으로 교체합니다.
+// 이게 없으면 알림 켤 때마다 토큰이 계속 쌓여서 한 기기에 알림이 여러 번 오게 됩니다.
+const LAST_TOKEN_KEY = 'nowgym-push-last-token'
 
 async function saveTokenIfNew(identity, token) {
+  let prevToken = null
+  try { prevToken = localStorage.getItem(LAST_TOKEN_KEY) } catch { /* noop */ }
+
   const ref = doc(db, COLLECTION, identity)
   const snap = await getDoc(ref)
-  const already = snap.exists() && (snap.data().tokens || []).includes(token)
-  if (already) return
-  if (snap.exists()) {
-    await setDoc(ref, { tokens: arrayUnion(token), updatedAt: Date.now() }, { merge: true })
-  } else {
-    await setDoc(ref, { tokens: [token], updatedAt: Date.now() })
+  const tokens = snap.exists() ? (snap.data().tokens || []) : []
+
+  if (prevToken && prevToken !== token && tokens.includes(prevToken)) {
+    await setDoc(ref, { tokens: arrayRemove(prevToken), updatedAt: Date.now() }, { merge: true })
   }
+  if (!tokens.includes(token)) {
+    await setDoc(ref, { tokens: arrayUnion(token), updatedAt: Date.now() }, { merge: true })
+  }
+  try { localStorage.setItem(LAST_TOKEN_KEY, token) } catch { /* noop */ }
 }
 
 // 브라우저 권한이 granted든 아니든, 실제로 FCM 토큰 발급 + Firestore 저장까지 확실히 성공시킵니다.
@@ -50,11 +59,11 @@ export async function listenForegroundPush() {
   const messaging = getMessaging(app)
   onMessage(messaging, async (payload) => {
     if (Notification.permission !== 'granted') return
-    const { title, body } = payload.notification || {}
+    const d = payload.data || {}
     // iOS Safari는 페이지에서 바로 new Notification()을 지원하지 않아서,
     // 항상 서비스 워커의 showNotification을 통해서만 띄웁니다 (아이폰/안드로이드 공통으로 동작).
     const registration = await navigator.serviceWorker.ready
-    registration.showNotification(title || '나우짐', { body: body || '', icon: '/icon.png' })
+    registration.showNotification(d.title || '나우짐', { body: d.body || '', icon: '/icon.png', data: { url: d.url || '/' } })
   })
 }
 

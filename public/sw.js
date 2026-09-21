@@ -20,12 +20,13 @@ firebase.initializeApp({
 const messaging = firebase.messaging()
 
 messaging.onBackgroundMessage((payload) => {
-  const { title, body } = payload.notification || {}
-  const url = (payload.data && payload.data.url) || '/'
-  self.registration.showNotification(title || '나우짐', {
-    body: body || '',
+  // notification 필드가 아니라 data 필드로만 보내야, FCM이 자동으로 한 번 띄우고
+  // 여기서 또 한 번 띄우는 중복 알림이 안 생깁니다.
+  const d = payload.data || {}
+  self.registration.showNotification(d.title || '나우짐', {
+    body: d.body || '',
     icon: '/icon.png',
-    data: { url },
+    data: { url: d.url || '/' },
   })
 })
 

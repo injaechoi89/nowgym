@@ -27,11 +27,11 @@ export async function sendPush(identities, { title, body, url = '/', page = null
   const tokens = [...tokenSet]
   if (!tokens.length) return { sent: 0 }
 
+  // notification 필드를 같이 보내면 브라우저가 자동으로 한 번 띄우고, 우리 서비스워커가 또 한 번 띄워서
+  // 알림이 중복으로 뜨는 문제가 있었습니다. data만 보내고 서비스워커에서 직접 한 번만 띄우도록 합니다.
   const res = await messaging.sendEachForMulticast({
     tokens,
-    notification: { title, body },
-    data: { url },
-    webpush: { fcmOptions: { link: url } },
+    data: { title, body, url, page: page || '' },
   })
 
   // 만료/무효 토큰은 Firestore에서 정리합니다.
