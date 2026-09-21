@@ -39,7 +39,8 @@ export async function sendPush(identities, { title, body, url = '/' }) {
     }
   }
 
-  return { sent: res.successCount, tokenCount: tokens.length }
+  const errors = res.responses.filter(r => !r.success).map(r => r.error?.code)
+  return { sent: res.successCount, tokenCount: tokens.length, errors }
 }
 
 export function checkCronAuth(req) {
