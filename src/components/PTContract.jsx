@@ -85,6 +85,26 @@ export default function PTContract({role, myTrainer}) {
     setMembers(ms=>ms.map(x=>x.id===m.id?nm:x))
     setCur(nm)
   }
+  const exportCSV=()=>{
+    const headers=['회원명','전화번호','생년월일','성별','담당트레이너','운동목적','상품명','등록구분','결제수단','시작일','만료일','결제금액','담당자']
+    const rows=[headers]
+    visibleMembers.forEach(m=>{
+      contractsOf(m).forEach(c=>{
+        const expire=addWeeks(c.start,c.product.weeks)
+        rows.push([m.name,m.phone,m.birth,m.gender,m.trainer,m.goal||'',c.product.name,c.regType,c.payMethod,toDateInput(c.start),toDateInput(expire),c.actual,c.staff])
+      })
+    })
+    const csv=rows.map(r=>r.map(v=>`"${String(v??'').replace(/"/g,'""')}"`).join(',')).join('\r\n')
+    const blob=new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8;'})
+    const url=URL.createObjectURL(blob)
+    const a=document.createElement('a')
+    a.href=url
+    a.download=`나우짐_PT회원_${toDateInput(TODAY)}.csv`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+  }
   const copyDiaryLink=m=>{
     if(!m.token){alert('링크를 준비 중이에요. 잠시 후 다시 시도해주세요.');return}
     const url=`${window.location.origin}${window.location.pathname}?member=${m.token}`
@@ -110,6 +130,7 @@ export default function PTContract({role, myTrainer}) {
               placeholder="🔍 이름 또는 전화번호로 검색"
               style={{flex:1,minWidth:0}}
             />
+            <button className="btn btn-outline" onClick={exportCSV}>⬇ 엑셀 내보내기</button>
             <button className="btn btn-g" onClick={openNew}>+ 신규 등록</button>
           </div>
           {visibleMembers.length===0&&<div className="empty-state">{searchQ?'검색 결과가 없어요.':'등록된 회원이 없어요.'}</div>}
