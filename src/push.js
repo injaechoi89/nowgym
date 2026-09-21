@@ -25,7 +25,7 @@ async function issueAndSaveToken(identity) {
   if (!(await isSupported())) throw new Error('이 브라우저(또는 이 화면)는 푸시 알림을 지원하지 않아요. 아이폰이라면 홈 화면에 추가한 앱으로 열어서 시도해주세요.')
   if (!VAPID_KEY) throw new Error('VAPID 키가 설정되지 않았어요.')
 
-  const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js')
+  const registration = await navigator.serviceWorker.register('/sw.js')
   await navigator.serviceWorker.ready
   const messaging = getMessaging(app)
   const token = await getToken(messaging, { vapidKey: VAPID_KEY, serviceWorkerRegistration: registration })
@@ -44,7 +44,7 @@ export async function enablePush(identity) {
 }
 
 // 앱이 화면에 열려 있는 상태(포그라운드)에서는 브라우저가 알림을 자동으로 띄워주지 않아서,
-// 직접 받아서 알림창을 띄워줘야 합니다. (백그라운드일 때는 firebase-messaging-sw.js가 처리)
+// 직접 받아서 알림창을 띄워줘야 합니다. (백그라운드일 때는 sw.js가 처리)
 export async function listenForegroundPush() {
   if (!(await isSupported())) return
   const messaging = getMessaging(app)
@@ -53,10 +53,8 @@ export async function listenForegroundPush() {
     const { title, body } = payload.notification || {}
     // iOS Safari는 페이지에서 바로 new Notification()을 지원하지 않아서,
     // 항상 서비스 워커의 showNotification을 통해서만 띄웁니다 (아이폰/안드로이드 공통으로 동작).
-    const registration = await navigator.serviceWorker.getRegistration('/firebase-messaging-sw.js')
-    if (registration) {
-      registration.showNotification(title || '나우짐', { body: body || '', icon: '/icon.png' })
-    }
+    const registration = await navigator.serviceWorker.ready
+    registration.showNotification(title || '나우짐', { body: body || '', icon: '/icon.png' })
   })
 }
 

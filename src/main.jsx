@@ -5,9 +5,19 @@ import './index.css'
 import { listenForegroundPush } from './push.js'
 ReactDOM.createRoot(document.getElementById('root')).render(<React.StrictMode><App /></React.StrictMode>)
 
-// 홈 화면에 추가할 때 브라우저가 manifest 아이콘을 제대로 쓰도록, 최소한의 서비스 워커를 등록합니다.
+// 홈 화면에 추가할 때 브라우저가 manifest 아이콘을 제대로 쓰도록, 서비스 워커를 등록합니다.
+// (예전에 sw.js와 firebase-messaging-sw.js를 따로 등록했던 기기에 낡은 등록이 남아있으면
+// 같은 범위(scope)끼리 충돌해서 푸시가 씹힐 수 있어서, 다른 스크립트로 등록된 건 먼저 정리합니다.)
 if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
+  window.addEventListener('load', async () => {
+    try {
+      const regs = await navigator.serviceWorker.getRegistrations()
+      for (const r of regs) {
+        if (!r.active || !r.active.scriptURL.endsWith('/sw.js')) await r.unregister()
+      }
+    } catch {
+      // 정리 실패해도 등록은 계속 진행
+    }
     navigator.serviceWorker.register('/sw.js').catch(() => {})
   })
 }
