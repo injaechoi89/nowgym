@@ -11,7 +11,7 @@ export default function Schedule({role, myTrainer}) {
   const [tab, setTab] = useState('hol')
   const [trainer, setTrainer] = useState(isOwner ? '정우' : myTrainer)
   const effectiveTrainer = trainer
-  const canEditVac = isOwner || effectiveTrainer===myTrainer
+  const canEditVac = isOwner
   const [year, setYear] = useState(TODAY.getFullYear())
   const [month, setMonth] = useState(TODAY.getMonth())
   const [vacData, setVacData] = useSyncedState('nowgym-vacations', VAC_DATA)
@@ -124,13 +124,25 @@ export default function Schedule({role, myTrainer}) {
       )}
       {tab==='hol'&&(
         <div>
-            <div className="card" style={{marginBottom:12,background:'#E05A2B'}}>
-              <div style={{color:'#fff',fontSize:13,opacity:.85,marginBottom:4}}>{ML[month]} 휴일 근무 추가금 합계</div>
-              <div style={{color:'#fff',fontSize:28,fontWeight:600}}>{fmt(holTotal)}</div>
-              <div style={{display:'flex',gap:8,marginTop:8,flexWrap:'wrap'}}>
-                {TRAINERS.map(tr=>{const cnt=monthRecs.filter(r=>r.trainerName===tr.name).length;const amt=monthRecs.filter(r=>r.trainerName===tr.name).reduce((a,r)=>a+recordBonusAmount(r),0);return cnt>0?<span key={tr.name} style={{fontSize:11,background:'rgba(255,255,255,.2)',color:'#fff',borderRadius:20,padding:'2px 10px'}}>{tr.short} {cnt}일 +{fmt(amt)}</span>:null})}
+            {isOwner ? (
+              <div className="card" style={{marginBottom:12,background:'#E05A2B'}}>
+                <div style={{color:'#fff',fontSize:13,opacity:.85,marginBottom:4}}>{ML[month]} 휴일 근무 추가금 합계</div>
+                <div style={{color:'#fff',fontSize:28,fontWeight:600}}>{fmt(holTotal)}</div>
+                <div style={{display:'flex',gap:8,marginTop:8,flexWrap:'wrap'}}>
+                  {TRAINERS.map(tr=>{const cnt=monthRecs.filter(r=>r.trainerName===tr.name).length;const amt=monthRecs.filter(r=>r.trainerName===tr.name).reduce((a,r)=>a+recordBonusAmount(r),0);return cnt>0?<span key={tr.name} style={{fontSize:11,background:'rgba(255,255,255,.2)',color:'#fff',borderRadius:20,padding:'2px 10px'}}>{tr.short} {cnt}일 +{fmt(amt)}</span>:null})}
+                </div>
               </div>
-            </div>
+            ) : (()=>{
+              const myRecs=monthRecs.filter(r=>r.trainerName===myTrainer)
+              const myAmt=myRecs.reduce((a,r)=>a+recordBonusAmount(r),0)
+              return (
+                <div className="card" style={{marginBottom:12,background:'#E05A2B'}}>
+                  <div style={{color:'#fff',fontSize:13,opacity:.85,marginBottom:4}}>{ML[month]} 내 휴일 근무 추가금</div>
+                  <div style={{color:'#fff',fontSize:28,fontWeight:600}}>{fmt(myAmt)}</div>
+                  <div style={{color:'rgba(255,255,255,.8)',fontSize:11,marginTop:6}}>{myRecs.length}일 근무</div>
+                </div>
+              )
+            })()}
             <div className="card">
               <div className="cal-nav">
                 <button className="cal-nav-btn" onClick={()=>changeMonth(-1)}>◀</button>
@@ -139,7 +151,7 @@ export default function Schedule({role, myTrainer}) {
               </div>
               <div style={{display:'flex',gap:10,marginBottom:10}}>
                 {HOL_TYPES.map(t=><div key={t} style={{display:'flex',alignItems:'center',gap:4,fontSize:12,color:'var(--text3)'}}><div style={{width:9,height:9,borderRadius:'50%',background:HOL_TYPE_COLOR[t]}}></div>{holLbl(t)}</div>)}
-                <div style={{fontSize:11,color:'var(--text3)',marginLeft:'auto'}}>날짜 클릭 → 등록</div>
+                <div style={{fontSize:11,color:'var(--text3)',marginLeft:'auto'}}>{isOwner?'날짜 클릭 → 등록':'등록은 원장님만 할 수 있어요'}</div>
               </div>
               <div className="cal-weekdays">{['일','월','화','수','목','금','토'].map((d,i)=><div key={i} className={`cal-wd${i===0?' s':i===6?' sa':''}`}>{d}</div>)}</div>
               <div className="cal-grid">
@@ -149,7 +161,7 @@ export default function Schedule({role, myTrainer}) {
                   const rec=holRecs.find(r=>r.date===k)
                   const isToday=d===TODAY.getDate()&&month===TODAY.getMonth()&&year===TODAY.getFullYear()
                   const dw=new Date(year,month,d).getDay()
-                  const lockedOut = !isOwner && rec && rec.trainerName!==myTrainer
+                  const lockedOut = !isOwner
                   return (
                     <div key={i} className={`cc hday${rec?' worked':''}${isToday?' today':''}`}
                       style={{cursor:lockedOut?'default':'pointer'}}
