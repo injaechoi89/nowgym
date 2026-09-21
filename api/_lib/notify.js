@@ -14,7 +14,7 @@ export async function sendPush(identities, { title, body, url = '/' }) {
   }
 
   const tokens = [...tokenSet]
-  if (!tokens.length) return { sent: 0 }
+  if (!tokens.length) return { sent: 0, tokenCount: 0 }
 
   const res = await messaging.sendEachForMulticast({
     tokens,
@@ -39,7 +39,7 @@ export async function sendPush(identities, { title, body, url = '/' }) {
     }
   }
 
-  return { sent: res.successCount }
+  return { sent: res.successCount, tokenCount: tokens.length }
 }
 
 export function checkCronAuth(req) {
