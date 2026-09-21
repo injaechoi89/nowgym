@@ -14,12 +14,18 @@ export default function PTContract({role, myTrainer}) {
   const [editContractId,setEditContractId]=useState(null)
   const [form,setForm]=useState({name:'',phone:'',birth:'',gender:'남',trainer:'인재',goal:'',regType:'신규',payMethod:'카드',start:toDateInput(TODAY),actual:'',staff:'인재',productId:'f10'})
   const [kkModal,setKkModal]=useState(null)
+  const [search,setSearch]=useState('')
   const selProd=products.find(p=>p.id===form.productId)||products[3]||products[0]
   const startDate=form.start?new Date(form.start):TODAY
   const expireDate=addWeeks(startDate,selProd.weeks)
   const actual=parseInt(form.actual)||selProd.price
   const discount=selProd.price-actual
-  const visibleMembers = isOwner ? members : members.filter(m=>m.trainer===myTrainer)
+  const roleMembers = isOwner ? members : members.filter(m=>m.trainer===myTrainer)
+  const searchQ = search.trim().toLowerCase()
+  const searchDigits = search.replace(/\D/g,'')
+  const visibleMembers = !searchQ ? roleMembers : roleMembers.filter(m=>
+    m.name.toLowerCase().includes(searchQ) || (searchDigits && (m.phone||'').replace(/\D/g,'').includes(searchDigits))
+  )
   const contractsOf = m => (m.contracts && m.contracts.length) ? m.contracts : [{id:'legacy-'+m.id,product:m.product,regType:m.regType,payMethod:m.payMethod,start:m.start,actual:m.actual,staff:m.staff}]
   const openNew=()=>{setForm({name:'',phone:'',birth:'',gender:'남',trainer:isOwner?'인재':myTrainer,goal:'',regType:'신규',payMethod:'카드',start:toDateInput(TODAY),actual:'',staff:isOwner?'인재':myTrainer,productId:'f10'});setCur(null);setRenewMode(false);setEditContractId(null);setView('form')}
   const openRenew=m=>{setForm({name:m.name,phone:m.phone,birth:m.birth,gender:m.gender,trainer:m.trainer,goal:m.goal||'',regType:'재등록',payMethod:m.payMethod,start:toDateInput(TODAY),actual:'',staff:m.staff,productId:m.product.id});setCur(m);setRenewMode(true);setEditContractId(null);setView('form')}
@@ -96,10 +102,17 @@ export default function PTContract({role, myTrainer}) {
     <div>
       {view==='list'&&(
         <div>
-          <div style={{display:'flex',justifyContent:'flex-end',marginBottom:14}}>
+          <div style={{display:'flex',gap:8,marginBottom:14}}>
+            <input
+              type="text"
+              value={search}
+              onChange={e=>setSearch(e.target.value)}
+              placeholder="🔍 이름 또는 전화번호로 검색"
+              style={{flex:1,minWidth:0}}
+            />
             <button className="btn btn-g" onClick={openNew}>+ 신규 등록</button>
           </div>
-          {visibleMembers.length===0&&<div className="empty-state">등록된 회원이 없어요.</div>}
+          {visibleMembers.length===0&&<div className="empty-state">{searchQ?'검색 결과가 없어요.':'등록된 회원이 없어요.'}</div>}
           <div className="grid-2">
             {visibleMembers.map(m=>{
               const expire=addWeeks(m.start,m.product.weeks)
