@@ -276,10 +276,12 @@ export default function PTDiary({role, myTrainer, diaryJump, onDiaryJumpHandled}
                   {(()=>{const info=exercises.find(ex=>ex.name===e.name); return info&&(info.desc||info.videoUrl||info.imageUrl)&&<button style={{background:'transparent',border:'none',color:'var(--text3)',cursor:'pointer',fontSize:13,padding:0}} onClick={()=>setExInfo(info)}>ⓘ</button>})()}
                   <span style={{fontSize:11,color:'var(--text3)'}}>VOL {Math.round(exVolume(e)).toLocaleString()}kg</span>
                 </div>
-                <table style={{width:'100%',borderCollapse:'collapse',fontSize:12}}>
-                  <thead><tr>{['세트','무게','횟수','볼륨'].map(h=><th key={h} style={{padding:'4px 8px',textAlign:'center',color:'var(--text3)',fontWeight:500,borderBottom:'0.5px solid var(--border)'}}>{h}</th>)}</tr></thead>
-                  <tbody>{e.sets.map((s,si)=><tr key={si}>{[si+1,s.w>0?s.w+'kg':'—',s.r+(s.u||'회'),s.w>0?Math.round(s.w*s.r).toLocaleString()+'kg':'—'].map((v,vi)=><td key={vi} style={{padding:'5px 8px',textAlign:'center',borderBottom:'0.5px solid var(--border)',fontWeight:vi===0?400:500,color:vi===0?'var(--text3)':'var(--text)'}}>{v}</td>)}</tr>)}</tbody>
-                </table>
+                <div style={{overflowX:'auto'}}>
+                  <table style={{width:'100%',minWidth:280,borderCollapse:'collapse',fontSize:12}}>
+                    <thead><tr>{['세트','무게','횟수','볼륨'].map(h=><th key={h} style={{padding:'4px 8px',textAlign:'center',color:'var(--text3)',fontWeight:500,borderBottom:'0.5px solid var(--border)'}}>{h}</th>)}</tr></thead>
+                    <tbody>{e.sets.map((s,si)=><tr key={si}>{[si+1,s.w>0?s.w+'kg':'—',s.r+(s.u||'회'),s.w>0?Math.round(s.w*s.r).toLocaleString()+'kg':'—'].map((v,vi)=><td key={vi} style={{padding:'5px 8px',textAlign:'center',borderBottom:'0.5px solid var(--border)',fontWeight:vi===0?400:500,color:vi===0?'var(--text3)':'var(--text)'}}>{v}</td>)}</tr>)}</tbody>
+                  </table>
+                </div>
                 {e.memo&&<div style={{fontSize:12,color:'var(--text2)',marginTop:8,paddingTop:8,borderTop:'0.5px solid var(--border)'}}>📝 {e.memo}</div>}
               </div>
             ))}
@@ -296,7 +298,7 @@ export default function PTDiary({role, myTrainer, diaryJump, onDiaryJumpHandled}
               <div>
                 <label style={{fontSize:12,color:'var(--text3)',display:'block',marginBottom:6}}>운동 강도</label>
                 <div style={{display:'flex',gap:6}}>
-                  {['😊 쉬움','💪 보통','🔥 힘듦','💀 최고'].map(v=><button key={v} style={{flex:1,padding:'6px 2px',border:'0.5px solid '+(wInt===v?'var(--green)':'var(--border)'),borderRadius:'var(--radius)',background:wInt===v?'var(--green-light)':'transparent',fontSize:11,cursor:'pointer',color:wInt===v?'var(--green-dark)':'var(--text2)',fontWeight:wInt===v?500:400}} onClick={()=>setWInt(v)}>{v}</button>)}
+                  {['😊 쉬움','💪 보통','🔥 힘듦','💀 최고'].map(v=><button key={v} style={{flex:1,minWidth:0,padding:'6px 2px',border:'0.5px solid '+(wInt===v?'var(--green)':'var(--border)'),borderRadius:'var(--radius)',background:wInt===v?'var(--green-light)':'transparent',fontSize:11,cursor:'pointer',color:wInt===v?'var(--green-dark)':'var(--text2)',fontWeight:wInt===v?500:400}} onClick={()=>setWInt(v)}>{v}</button>)}
                 </div>
               </div>
             </div>
@@ -332,11 +334,11 @@ export default function PTDiary({role, myTrainer, diaryJump, onDiaryJumpHandled}
                       <button style={{background:'transparent',border:'none',color:'var(--blue)',cursor:'pointer',fontSize:11,fontWeight:600,whiteSpace:'nowrap'}} onClick={()=>loadPrev(bi,prev.sets)}>불러오기</button>
                     </div>
                   )})()}
-                  <div style={{display:'grid',gridTemplateColumns:'24px 1fr 1fr 1fr 20px',gap:4,marginBottom:4}}>
+                  <div style={{display:'grid',gridTemplateColumns:'24px minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) 20px',gap:4,marginBottom:4}}>
                     {['세트','무게(kg)','횟수','단위',''].map((h,i)=><div key={i} style={{fontSize:10,color:'var(--text3)',textAlign:'center'}}>{h}</div>)}
                   </div>
                   {ex.sets.map((s,si)=>(
-                    <div key={si} style={{display:'grid',gridTemplateColumns:'24px 1fr 1fr 1fr 20px',gap:4,marginBottom:4,alignItems:'center'}}>
+                    <div key={si} style={{display:'grid',gridTemplateColumns:'24px minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) 20px',gap:4,marginBottom:4,alignItems:'center'}}>
                       <div style={{fontSize:11,color:'var(--text3)',textAlign:'center'}}>{si+1}</div>
                       <input type="number" value={s.w} onChange={e=>updSet(bi,si,'w',e.target.value)} placeholder="0" style={{textAlign:'center',fontSize:12,padding:'4px 2px'}}/>
                       <input type="number" value={s.r} onChange={e=>updSet(bi,si,'r',e.target.value)} placeholder="0" style={{textAlign:'center',fontSize:12,padding:'4px 2px'}}/>
