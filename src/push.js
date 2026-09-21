@@ -1,5 +1,5 @@
 import { doc, getDoc, setDoc, arrayUnion } from 'firebase/firestore'
-import { getMessaging, getToken, isSupported } from 'firebase/messaging'
+import { getMessaging, getToken, isSupported, onMessage } from 'firebase/messaging'
 import { app, db } from './firebase.js'
 
 const VAPID_KEY = import.meta.env.VITE_FIREBASE_VAPID_KEY
@@ -41,6 +41,23 @@ export async function enablePush(identity) {
   const permission = await Notification.requestPermission()
   if (permission !== 'granted') throw new Error('알림 권한이 거부됐어요.')
   await issueAndSaveToken(identity)
+}
+
+// 앱이 화면에 열려 있는 상태(포그라운드)에서는 브라우저가 알림을 자동으로 띄워주지 않아서,
+// 직접 받아서 알림창을 띄워줘야 합니다. (백그라운드일 때는 firebase-messaging-sw.js가 처리)
+export async function listenForegroundPush() {
+  if (!(await isSupported())) return
+  const messaging = getMessaging(app)
+  onMessage(messaging, async (payload) => {
+    if (Notification.permission !== 'granted') return
+    const { title, body } = payload.notification || {}
+    // iOS Safari는 페이지에서 바로 new Notification()을 지원하지 않아서,
+    // 항상 서비스 워커의 showNotification을 통해서만 띄웁니다 (아이폰/안드로이드 공통으로 동작).
+    const registration = await navigator.serviceWorker.getRegistration('/firebase-messaging-sw.js')
+    if (registration) {
+      registration.showNotification(title || '나우짐', { body: body || '', icon: '/icon.png' })
+    }
+  })
 }
 
 // 화면 진입 시: 이미 권한은 허용됐는데 토큰 저장이 안 된 애매한 상태라면 조용히 복구를 시도합니다.
