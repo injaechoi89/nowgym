@@ -5,7 +5,7 @@ import { getPtHoursSettings, setPtHoursSettingsFor, subscribePtHoursSettings } f
 import { useSyncedState } from '../useSyncedState.js'
 import { EXERCISES_INIT, PRODUCTS_INIT, TRAINERS, SALARY_POLICY_INIT, VACATION_QUOTA_INIT } from '../data.js'
 import { readFileAsDataUrl, processImage } from '../photoUtils.js'
-import { enablePush, getPushStatus } from '../push.js'
+import { enablePush, checkAndHealPush } from '../push.js'
 
 const emptyExForm = () => ({id:null,category:'',name:'',desc:'',imageUrl:'',videoUrl:''})
 const emptyProdForm = () => ({id:null,type:'full',name:'',count:'',weeks:'',price:''})
@@ -40,7 +40,7 @@ export default function Settings({ role, myTrainer }) {
 
   useEffect(() => subscribeHolBonusSettings(setHolSettingsState), [])
   useEffect(() => subscribePtHoursSettings(setPtHoursAllState), [])
-  useEffect(() => { getPushStatus().then(setPushStatus) }, [])
+  useEffect(() => { checkAndHealPush(myIdentity).then(setPushStatus) }, [myIdentity])
 
   const onEnablePush = async () => {
     setPushBusy(true); setPushMsg('')
@@ -49,6 +49,7 @@ export default function Settings({ role, myTrainer }) {
       setPushStatus('granted')
       setPushMsg('알림이 켜졌어요!')
     } catch (e) {
+      setPushStatus('error')
       setPushMsg(e.message || '알림 설정에 실패했어요.')
     } finally {
       setPushBusy(false)
@@ -266,6 +267,11 @@ export default function Settings({ role, myTrainer }) {
               <div style={{fontSize:13,color:'var(--text3)'}}>브라우저에서 알림 권한이 차단되어 있어요. 브라우저 설정에서 이 사이트의 알림 권한을 허용한 뒤 다시 시도해주세요.</div>
             ) : pushStatus==='granted' ? (
               <div style={{fontSize:13,color:'var(--green)'}}>✓ 이 기기에서 알림이 켜져 있어요.</div>
+            ) : pushStatus==='error' ? (
+              <>
+                <div style={{fontSize:13,color:'#E05A2B',marginBottom:8}}>알림 권한은 허용돼 있지만 등록이 실패했어요. 다시 시도해주세요.</div>
+                <button className="btn btn-g" disabled={pushBusy} onClick={onEnablePush}>{pushBusy?'설정 중...':'다시 시도'}</button>
+              </>
             ) : (
               <button className="btn btn-g" disabled={pushBusy} onClick={onEnablePush}>{pushBusy?'설정 중...':'이 기기에서 알림 켜기'}</button>
             )}
