@@ -3,7 +3,13 @@ import ReactDOM from 'react-dom/client'
 import App from './App.jsx'
 import './index.css'
 import { listenForegroundPush } from './push.js'
-ReactDOM.createRoot(document.getElementById('root')).render(<React.StrictMode><App /></React.StrictMode>)
+import { ensureAnonAuth } from './firebase.js'
+
+// Firestore 규칙이 로그인된 사용자만 허용하도록 바뀌어서, 화면을 그리기 전에
+// 먼저 익명 로그인이 끝나길 기다립니다 (보통 1초 이내).
+ensureAnonAuth().finally(() => {
+  ReactDOM.createRoot(document.getElementById('root')).render(<React.StrictMode><App /></React.StrictMode>)
+})
 
 // 홈 화면에 추가할 때 브라우저가 manifest 아이콘을 제대로 쓰도록, 서비스 워커를 등록합니다.
 // (예전에 sw.js와 firebase-messaging-sw.js를 따로 등록했던 기기에 낡은 등록이 남아있으면
