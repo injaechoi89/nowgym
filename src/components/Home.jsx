@@ -42,6 +42,9 @@ export default function Home({role, myTrainer, onNavigate, onOpenTodayTask}) {
     return {t, done, target, pct: Math.min(100, Math.round(done/target*100))}
   })
 
+  const payDay = new Date(TODAY.getFullYear(), TODAY.getMonth() + (TODAY.getDate()>10?1:0), 10)
+  const dDay = Math.round((payDay - new Date(TODAY.getFullYear(),TODAY.getMonth(),TODAY.getDate())) / 86400000)
+
   return (
     <div>
       <div style={{fontSize:20,fontWeight:600,marginBottom:4}}>안녕하세요{isOwner?'':`, ${myTrainer} 선생님`} 👋</div>
@@ -51,7 +54,7 @@ export default function Home({role, myTrainer, onNavigate, onOpenTodayTask}) {
           <div className="metric"><div className="metric-label">{ML[curMonth-1]} 총 매출</div><div className="metric-val g">{fmtM(d.total)}</div><div className="metric-sub">{prev?(diff>=0?'▲':'▼')+' 전월 '+Math.abs(diff)+'%':'—'}</div></div>
           <div className="metric"><div className="metric-label">이번달 회원</div><div className="metric-val">{d.newMem+d.reReg}명</div><div className="metric-sub">신규 {d.newMem} · 재등록 {d.reReg}</div></div>
           <div className="metric"><div className="metric-label">PT 매출</div><div className="metric-val b">{fmtM(d.ptTotal)}</div><div className="metric-sub">전체의 {Math.round(d.ptTotal/d.total*100)}%</div></div>
-          <div className="metric"><div className="metric-label">10월 10일 지급</div><div className="metric-val o">D-5</div><div className="metric-sub">급여 지급일</div></div>
+          <div className="metric"><div className="metric-label">{payDay.getMonth()+1}월 {payDay.getDate()}일 지급</div><div className="metric-val o">{dDay===0?'D-DAY':'D-'+dDay}</div><div className="metric-sub">급여 지급일</div></div>
         </div>
       ) : (
         <>
