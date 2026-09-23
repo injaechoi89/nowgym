@@ -1,6 +1,6 @@
 import {useState} from 'react'
 import {useSyncedState} from '../useSyncedState.js'
-import {TRAINERS,SALARY_POLICY_INIT,salaryPolicyFor,MT,ML,HOL_RECORDS_INIT,getTier,fmt,fmtM,sumHolidayBonus,PT_INSEN_TRAINERS,ptInsenGroupTotal,ptInsenFor,PT_INSEN_THRESHOLD,getQInsen} from '../data.js'
+import {TRAINERS,SALARY_POLICY_INIT,salaryPolicyFor,MT,ML,HOL_RECORDS_INIT,getTier,fmt,fmtM,sumHolidayBonus,PT_INSEN_TRAINERS,ptInsenGroupTotal,ptInsenFor,PT_INSEN_THRESHOLD,getQInsen,calcWithholding,WITHHOLDING_TRAINERS} from '../data.js'
 import {useLiveSales} from '../useLiveSales.js'
 
 export default function Salary({role, myTrainer}) {
@@ -10,6 +10,7 @@ export default function Salary({role, myTrainer}) {
   const [salaryPolicies] = useSyncedState('nowgym-salary-policy', SALARY_POLICY_INIT)
   const {monthSales:MONTH_SALES, monthKeys:SALES_MONTH_KEYS} = useLiveSales()
   const [idx, setIdx] = useState(SALES_MONTH_KEYS.length-1)
+  const [payView, setPayView] = useState('net') // 'net'(세후) | 'gross'(세전)
   const key = SALES_MONTH_KEYS[idx]
   const [year,monthStr] = key.split('-'); const month = +monthStr
   const d = MONTH_SALES[key]
@@ -31,10 +32,12 @@ export default function Salary({role, myTrainer}) {
     const hol=sumHolidayBonus(holRecs, tr.name, +year, month)
     const qI=qInfo.insen
     const total=fixed+mi+ptInsen+hol+qI
-    return {tr, base, taskInsen, ptAmt, ptEligible, ptInsen, hol, qI, total}
+    const wh=calcWithholding(tr.name,total)
+    const viewTotal=payView==='net'?wh.net:total
+    return {tr, base, taskInsen, ptAmt, ptEligible, ptInsen, hol, qI, total, wh, viewTotal}
   }
   const trainerCalcs = visibleTrainers.map(calcTrainer)
-  const excInjaeTotal = trainerCalcs.filter(c=>c.tr.name!=='인재').reduce((a,c)=>a+c.total,0)
+  const excInjaeTotal = trainerCalcs.filter(c=>c.tr.name!=='인재').reduce((a,c)=>a+c.viewTotal,0)
   const calcTotalForMonth = (name, mk) => {
     const md = MONTH_SALES[mk]
     const [my, mmStr] = mk.split('-'); const mm = +mmStr
@@ -45,7 +48,8 @@ export default function Salary({role, myTrainer}) {
     const taskInsen = pol.taskInsen[name] ?? 400000
     const ptInsen = ptInsenFor(name, md.trainer)
     const hol = sumHolidayBonus(holRecs, name, +my, mm)
-    return base + taskInsen + miM + ptInsen + hol + qIM
+    const total = base + taskInsen + miM + ptInsen + hol + qIM
+    return payView==='net' ? calcWithholding(name,total).net : total
   }
   const calcExcInjaeTotalForMonth = mk => PT_INSEN_TRAINERS.reduce((sum, name) => sum + calcTotalForMonth(name, mk), 0)
   const monthlyExcInjaeTotals = SALES_MONTH_KEYS.map(mk => ({mk, total: calcExcInjaeTotalForMonth(mk)}))
@@ -59,21 +63,26 @@ export default function Salary({role, myTrainer}) {
         <span className="cal-nav-label">{year}년 {ML[month-1]} 정산</span>
         <button className="cal-nav-btn" disabled={idx>=SALES_MONTH_KEYS.length-1} onClick={()=>setIdx(i=>Math.min(SALES_MONTH_KEYS.length-1,i+1))}>▶</button>
       </div>
+      <div style={{display:'flex',gap:6,marginBottom:16}}>
+        <button className={`btn ${payView==='gross'?'btn-g':'btn-outline'}`} style={{flex:1,padding:'8px 4px',fontSize:13}} onClick={()=>setPayView('gross')}>세전</button>
+        <button className={`btn ${payView==='net'?'btn-g':'btn-outline'}`} style={{flex:1,padding:'8px 4px',fontSize:13}} onClick={()=>setPayView('net')}>세후 (실지급액)</button>
+      </div>
       {isOwner && (
         <div className="card" style={{padding:0,overflow:'hidden',marginBottom:16}}>
           <div style={{background:'var(--blue)',padding:'12px 16px'}}>
-            <div style={{color:'rgba(255,255,255,.85)',fontSize:12,marginBottom:3}}>정우·준혁·건호 합산 월급 (인재 제외) · {ML[month-1]}</div>
+            <div style={{color:'rgba(255,255,255,.85)',fontSize:12,marginBottom:3}}>정우·준혁·건호 합산 {payView==='net'?'실지급액':'세전 월급'} (인재 제외) · {ML[month-1]}</div>
             <div style={{color:'#fff',fontSize:24,fontWeight:600}}>{fmt(excInjaeTotal)}</div>
           </div>
         </div>
       )}
       <div className="grid-2">
-        {trainerCalcs.map(({tr, base, taskInsen, ptAmt, ptEligible, ptInsen, hol, qI, total})=>{
+        {trainerCalcs.map(({tr, base, taskInsen, ptAmt, ptEligible, ptInsen, hol, qI, total, wh, viewTotal})=>{
+          const withheld = WITHHOLDING_TRAINERS.includes(tr.name)
           return (
             <div key={tr.name} className="card" style={{padding:0,overflow:'hidden'}}>
               <div style={{background:'var(--green)',padding:'12px 16px'}}>
-                <div style={{color:'rgba(255,255,255,.85)',fontSize:12,marginBottom:3}}>{tr.name} · {ML[month-1]} → {nextMonth} 10일 지급</div>
-                <div style={{color:'#fff',fontSize:24,fontWeight:600}}>{fmt(total)}</div>
+                <div style={{color:'rgba(255,255,255,.85)',fontSize:12,marginBottom:3}}>{tr.name} · {ML[month-1]} → {nextMonth} 10일 지급{withheld&&<span> · {payView==='net'?'세후 실지급액':'세전 총액'}</span>}</div>
+                <div style={{color:'#fff',fontSize:24,fontWeight:600}}>{fmt(viewTotal)}</div>
               </div>
               <div style={{padding:'10px 16px'}}>
                 <div style={{fontSize:11,fontWeight:500,color:'var(--text3)',padding:'6px 0 3px'}}>고정급 <span style={{fontWeight:400}}>({policy.effectiveFrom.slice(0,4)}년 {+policy.effectiveFrom.slice(5)}월~ 기준)</span></div>
@@ -101,9 +110,17 @@ export default function Salary({role, myTrainer}) {
                   <span className="rl">분기 인센 <span style={{fontSize:10,background:'var(--blue-light)',color:'var(--blue-dark)',padding:'1px 6px',borderRadius:8,marginLeft:4}}>분기</span>{hasQ&&<span style={{fontSize:10,color:'var(--text3)',display:'block',marginTop:2}}>{qInfo.label}</span>}</span>
                   <span className="rv" style={{color:hasQ?'var(--blue)':'var(--text3)'}}>{hasQ?'+'+fmt(qI):'해당없음'}</span>
                 </div>
+                {withheld && (
+                  <>
+                    <div style={{fontSize:11,fontWeight:500,color:'var(--text3)',padding:'6px 0 3px'}}>세금 공제 <span style={{fontSize:10,background:'var(--red-light)',color:'var(--red)',padding:'1px 6px',borderRadius:8,marginLeft:4}}>사업소득 3.3%</span></div>
+                    <div className="rrow"><span className="rl">세전 총액</span><span className="rv">{fmt(total)}</span></div>
+                    <div className="rrow"><span className="rl">사업소득세 (3%)</span><span className="rv" style={{color:'var(--red)'}}>-{fmt(wh.incomeTax)}</span></div>
+                    <div className="rrow"><span className="rl">지방소득세 (0.3%)</span><span className="rv" style={{color:'var(--red)'}}>-{fmt(wh.localTax)}</span></div>
+                  </>
+                )}
                 <div className="rrow" style={{marginTop:6,paddingTop:8,borderTop:'0.5px solid var(--border-strong)'}}>
-                  <span style={{fontWeight:500,color:'var(--text)'}}>최종 합계</span>
-                  <span style={{fontSize:16,fontWeight:600,color:'var(--green)'}}>{fmt(total)}</span>
+                  <span style={{fontWeight:500,color:'var(--text)'}}>{withheld?(payView==='net'?'세후 실지급액':'세전 합계'):'최종 합계'}</span>
+                  <span style={{fontSize:16,fontWeight:600,color:'var(--green)'}}>{fmt(viewTotal)}</span>
                 </div>
               </div>
             </div>
@@ -112,7 +129,7 @@ export default function Salary({role, myTrainer}) {
       </div>
       {isOwner && (
         <div className="card" style={{marginTop:16}}>
-          <div className="card-title">월별 합산 월급 추이 <span style={{fontSize:11,color:'var(--text3)'}}>정우·준혁·건호, 인재 제외</span></div>
+          <div className="card-title">월별 합산 {payView==='net'?'실지급액':'세전 월급'} 추이 <span style={{fontSize:11,color:'var(--text3)'}}>정우·준혁·건호, 인재 제외</span></div>
           <div style={{display:'flex',flexDirection:'column',gap:8}}>
             {monthlyExcInjaeTotals.map(({mk},i)=>({mk,i})).reverse().map(({mk,i})=>{
               const total=monthlyExcInjaeTotals[i].total
@@ -133,7 +150,7 @@ export default function Salary({role, myTrainer}) {
       )}
       {!isOwner && (
         <div className="card" style={{marginTop:16}}>
-          <div className="card-title">월별 급여 지급액 <span style={{fontSize:11,color:'var(--text3)'}}>{myTrainer}</span></div>
+          <div className="card-title">월별 {payView==='net'?'실지급액':'세전 급여'} <span style={{fontSize:11,color:'var(--text3)'}}>{myTrainer}</span></div>
           <div style={{display:'flex',flexDirection:'column',gap:8}}>
             {monthlyMyTotals.map(({mk},i)=>({mk,i})).reverse().map(({mk,i})=>{
               const total=monthlyMyTotals[i].total

@@ -75,6 +75,17 @@ export function ptInsenFor(name,trainerSales){
   if(ptInsenGroupTotal(trainerSales) < PT_INSEN_THRESHOLD) return 0
   return Math.round((trainerSales[name]||0)*PT_INSEN_RATE)
 }
+// 급여 원천징수: 정우·준혁·건호는 사업소득(3.3%) 방식으로 지급해서, 실제 통장에 들어가는 금액은
+// 세전 총액에서 사업소득세 3%·지방소득세 0.3%를 뗀 금액입니다. (인재는 해당 없음)
+export const WITHHOLDING_TRAINERS = ['정우','준혁','건호']
+export const INCOME_TAX_RATE = 0.03
+export const LOCAL_TAX_RATE = 0.003
+export function calcWithholding(name, total){
+  if(!WITHHOLDING_TRAINERS.includes(name)) return {incomeTax:0, localTax:0, net: total}
+  const incomeTax = Math.floor(total*INCOME_TAX_RATE/10)*10
+  const localTax = Math.floor(total*LOCAL_TAX_RATE/10)*10
+  return {incomeTax, localTax, net: total-incomeTax-localTax}
+}
 export function fmt(n){return Math.round(n).toLocaleString('ko-KR')+'원';}
 export function fmtM(n){return Math.round(n/10000).toLocaleString('ko-KR')+'만';}
 function asDate(d){return d instanceof Date ? d : new Date(d);}
