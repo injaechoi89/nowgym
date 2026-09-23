@@ -129,6 +129,27 @@ export default function PT({role, myTrainer, onOpenDiary}) {
     setModal(null)
   }
 
+  const copyLastWeek = () => {
+    const prevMon = new Date(mon); prevMon.setDate(prevMon.getDate()-7)
+    const prevSun = new Date(prevMon); prevSun.setDate(prevSun.getDate()+6)
+    const prevKeys = Array.from({length:7},(_,i)=>{const d=new Date(prevMon); d.setDate(d.getDate()+i); return toKey(d)})
+    const curKeys = Array.from({length:7},(_,i)=>{const d=new Date(mon); d.setDate(d.getDate()+i); return toKey(d)})
+    const prevBookings = pts.filter(p=>prevKeys.includes(p.dateKey))
+    if (!prevBookings.length) { alert(`${prevMon.getMonth()+1}월 ${prevMon.getDate()}일 – ${prevSun.getMonth()+1}월 ${prevSun.getDate()}일 주에는 예약이 없어요.`); return }
+    if (!window.confirm(`${prevMon.getMonth()+1}월 ${prevMon.getDate()}일 주 예약 ${prevBookings.length}건을 이번에 보는 주로 복사할까요? 이미 등록된 시간대는 그대로 두고 빈 칸만 채워요.`)) return
+    setPtData(pd => {
+      const list = [...(pd[effectiveTrainer]||[])]
+      prevBookings.forEach(p => {
+        const idx = prevKeys.indexOf(p.dateKey)
+        const newDateKey = curKeys[idx]
+        if (!list.some(x=>x.dateKey===newDateKey && x.hour===p.hour)) {
+          list.push({dateKey:newDateKey, hour:p.hour, type:p.type, m:p.m})
+        }
+      })
+      return {...pd, [effectiveTrainer]: list}
+    })
+  }
+
   const resetAllSchedules = () => {
     if (!window.confirm('모든 트레이너의 PT 시간표 예약을 전부 삭제할까요? 되돌릴 수 없어요.')) return
     setPtData({})
@@ -165,7 +186,8 @@ export default function PT({role, myTrainer, onOpenDiary}) {
           <span className="cal-nav-label">{mon.getMonth()+1}월 {mon.getDate()}일 – {sun.getMonth()+1}월 {sun.getDate()}일{offset===0?' (이번주)':''}</span>
           <button className="cal-nav-btn" onClick={()=>setOffset(o=>o+1)}>▶</button>
         </div>
-        <div style={{display:'flex',gap:12,marginBottom:10,flexWrap:'wrap'}}>
+        <div style={{display:'flex',gap:12,marginBottom:10,flexWrap:'wrap',alignItems:'center'}}>
+          <button className="btn btn-outline" style={{padding:'6px 12px',fontSize:12}} onClick={copyLastWeek}>📋 지난주 그대로 복사</button>
           <div style={{display:'flex',alignItems:'center',gap:5,fontSize:12,color:'var(--text3)'}}><div style={{width:12,height:12,borderRadius:3,background:'#FBEAF0',border:'1.5px solid #D4537E'}}></div>하프PT 30분 (1칸)</div>
           <div style={{display:'flex',alignItems:'center',gap:5,fontSize:12,color:'var(--text3)'}}><div style={{width:12,height:12,borderRadius:3,background:'#E6F1FB',border:'1.5px solid #378ADD'}}></div>일반PT 50분 (2칸)</div>
           <div style={{fontSize:11,color:'var(--text3)',marginLeft:'auto'}}>빈 칸 클릭 → 등록 · 예약 클릭 → 수정/삭제 (해당 날짜에만 등록돼요)</div>
