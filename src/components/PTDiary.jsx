@@ -113,6 +113,23 @@ export default function PTDiary({role, myTrainer, diaryJump, onDiaryJumpHandled}
     })
     setView('calendar')
   }
+  const copyDiaryLink=m=>{
+    let member=m
+    if(!member.token){
+      const newToken=genToken()
+      setMembers(list=>list.map(x=>x.id===member.id?{...x,token:newToken}:x))
+      member={...member,token:newToken}
+    }
+    const url=`${window.location.origin}${window.location.pathname}?member=${member.token}`
+    if(navigator.clipboard&&navigator.clipboard.writeText){
+      navigator.clipboard.writeText(url).then(
+        ()=>alert('운동일지 링크가 복사되었어요. 회원님께 전달해주세요.'),
+        ()=>window.prompt('아래 링크를 복사해주세요', url)
+      )
+    } else {
+      window.prompt('아래 링크를 복사해주세요', url)
+    }
+  }
   const openKk=l=>{
     const exLines=l.exs.map((e,i)=>{
       const setsStr=e.sets.map((s,si)=>`${si+1}세트 ${s.w>0?s.w+'kg ':''}${s.r}${s.u||'회'}`).join(', ')
@@ -212,7 +229,11 @@ export default function PTDiary({role, myTrainer, diaryJump, onDiaryJumpHandled}
                   <div style={{fontSize:15,fontWeight:500}}>{selMember.name}{selMember.goal&&<span style={{fontSize:11,fontWeight:400,color:'var(--green-dark)',background:'var(--green-light)',borderRadius:8,padding:'1px 7px',marginLeft:6}}>{selMember.goal}</span>}</div>
                   <div style={{fontSize:12,color:'var(--text3)'}}>{selMember.product.name}</div>
                 </div>
-                <span className="badge badge-g">일지 {memberLogs.length}개</span>
+                <button
+                  onClick={()=>copyDiaryLink(selMember)}
+                  title="회원 운동일지 링크 복사"
+                  style={{width:32,height:32,borderRadius:'50%',background:'var(--surface1)',border:'0.5px solid var(--border)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:15,cursor:'pointer',flexShrink:0}}
+                >🔗</button>
               </div>
             </div>
             <div style={{display:'flex',gap:12,marginBottom:10,flexWrap:'wrap'}}>
