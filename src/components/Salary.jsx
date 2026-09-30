@@ -8,6 +8,7 @@ export default function Salary({role, myTrainer}) {
   const visibleTrainers = isOwner ? TRAINERS : TRAINERS.filter(t=>t.name===myTrainer)
   const [holRecs] = useSyncedState('nowgym-holiday-work', HOL_RECORDS_INIT)
   const [salaryPolicies] = useSyncedState('nowgym-salary-policy', SALARY_POLICY_INIT)
+  const [confirms, setConfirms] = useSyncedState('nowgym-salary-confirm', {})
   const {monthSales:MONTH_SALES, monthKeys:SALES_MONTH_KEYS} = useLiveSales()
   const [idx, setIdx] = useState(SALES_MONTH_KEYS.length-1)
   const [payView, setPayView] = useState('net') // 'net'(세후) | 'gross'(세전)
@@ -56,6 +57,19 @@ export default function Salary({role, myTrainer}) {
   const maxMonthlyTotal = Math.max(...monthlyExcInjaeTotals.map(m=>m.total))
   const monthlyMyTotals = SALES_MONTH_KEYS.map(mk => ({mk, total: calcTotalForMonth(myTrainer, mk)}))
   const maxMyMonthlyTotal = Math.max(...monthlyMyTotals.map(m=>m.total))
+  const monthConfirms = confirms[key] || {}
+  const monthLabel = `${year}년 ${ML[month-1]}`
+  const fmtConfirmTime = ts => {
+    const dt = new Date(ts)
+    return `${dt.getMonth()+1}/${dt.getDate()} ${String(dt.getHours()).padStart(2,'0')}:${String(dt.getMinutes()).padStart(2,'0')}`
+  }
+  const confirmSalary = () => {
+    setConfirms(prev => ({...prev, [key]: {...(prev[key]||{}), [myTrainer]: Date.now()}}))
+    fetch('/api/notify-salary-confirm', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({trainer: myTrainer, monthLabel})}).catch(()=>{})
+  }
+  const cancelConfirmSalary = () => {
+    setConfirms(prev => { const mc = {...(prev[key]||{})}; delete mc[myTrainer]; return {...prev, [key]: mc} })
+  }
   return (
     <div>
       <div className="cal-nav" style={{marginBottom:16}}>
@@ -75,6 +89,22 @@ export default function Salary({role, myTrainer}) {
           </div>
         </div>
       )}
+      {!isOwner && (
+        <div className="card" style={{marginBottom:16,padding:16,background:monthConfirms[myTrainer]?'var(--green-light)':'var(--surface1)'}}>
+          <div style={{fontSize:13,fontWeight:600,marginBottom:4}}>{monthLabel} 급여 확인</div>
+          {monthConfirms[myTrainer] ? (
+            <>
+              <div style={{fontSize:12,color:'var(--green)',marginBottom:8}}>✅ 확인 완료 · {fmtConfirmTime(monthConfirms[myTrainer])}</div>
+              <button className="btn btn-outline" style={{fontSize:12,padding:'6px 12px'}} onClick={cancelConfirmSalary}>확인 취소</button>
+            </>
+          ) : (
+            <>
+              <div style={{fontSize:12,color:'var(--text2)',marginBottom:8}}>급여 내역을 확인하신 후 아래 버튼을 눌러주세요. 확인해야 급여가 지급돼요.</div>
+              <button className="btn btn-g" style={{fontSize:13,padding:'8px 14px'}} onClick={confirmSalary}>월급 확인 완료</button>
+            </>
+          )}
+        </div>
+      )}
       <div className="grid-2">
         {trainerCalcs.map(({tr, base, taskInsen, ptAmt, ptEligible, ptInsen, hol, qI, total, wh, viewTotal})=>{
           const withheld = WITHHOLDING_TRAINERS.includes(tr.name)
@@ -83,6 +113,15 @@ export default function Salary({role, myTrainer}) {
               <div style={{background:'var(--green)',padding:'12px 16px'}}>
                 <div style={{color:'rgba(255,255,255,.85)',fontSize:12,marginBottom:3}}>{tr.name} · {ML[month-1]} → {nextMonth} 10일 지급{withheld&&<span> · {payView==='net'?'세후 실지급액':'세전 총액'}</span>}</div>
                 <div style={{color:'#fff',fontSize:24,fontWeight:600}}>{fmt(viewTotal)}</div>
+                {isOwner && (
+                  <div style={{marginTop:6}}>
+                    {monthConfirms[tr.name] ? (
+                      <span style={{fontSize:11,background:'rgba(255,255,255,.25)',color:'#fff',padding:'2px 8px',borderRadius:10}}>✅ 확인 완료 · {fmtConfirmTime(monthConfirms[tr.name])}</span>
+                    ) : (
+                      <span style={{fontSize:11,background:'rgba(0,0,0,.15)',color:'rgba(255,255,255,.85)',padding:'2px 8px',borderRadius:10}}>⏳ 미확인</span>
+                    )}
+                  </div>
+                )}
               </div>
               <div style={{padding:'10px 16px'}}>
                 <div style={{fontSize:11,fontWeight:500,color:'var(--text3)',padding:'6px 0 3px'}}>고정급 <span style={{fontWeight:400}}>({policy.effectiveFrom.slice(0,4)}년 {+policy.effectiveFrom.slice(5)}월~ 기준)</span></div>
