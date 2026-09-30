@@ -99,7 +99,7 @@ export default function Salary({role, myTrainer}) {
             </>
           ) : (
             <>
-              <div style={{fontSize:12,color:'var(--text2)',marginBottom:8}}>급여 내역을 확인하신 후 아래 버튼을 눌러주세요. 확인해야 급여가 지급돼요.</div>
+              <div style={{fontSize:12,color:'var(--text2)',marginBottom:8}}>급여 내역을 확인하신 후 버튼을 눌러주세요.</div>
               <button className="btn btn-g" style={{fontSize:13,padding:'8px 14px'}} onClick={confirmSalary}>월급 확인 완료</button>
             </>
           )}
