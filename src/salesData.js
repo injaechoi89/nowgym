@@ -150,6 +150,40 @@ export const MONTH_SALES = {
   }
 }
 
+// 구글 스프레드시트 동기화(위 MONTH_SALES)는 수동으로 갱신되는 스냅샷이라, 새 달이 되어도
+// 그 달 키가 자동으로 생기지 않습니다. 매달 1일이 되면 화면이 자연스럽게 새 달로 넘어가도록,
+// 스냅샷에 없는 달은 0으로 채운 빈 데이터를 채워 넣습니다 — 실제 값은 useLiveSales가 시트에서
+// 실시간으로 덮어써 보여줍니다.
+function emptyMonthSales() {
+  return {
+    total: 0, card: 0, account: 0, kiosk: 0, cash: 0,
+    newMem: 0, reReg: 0, ptMem: 0, normal: 0,
+    newSales: 0, reSales: 0, ptSales: 0, normSales: 0,
+    trainer: { "정우": 0, "준혁": 0, "건호": 0, "인재": 0 },
+    ptTotal: 0,
+  }
+}
+
+function addMonthKey(key, n) {
+  let [y, m] = key.split('-').map(Number)
+  m += n
+  while (m > 12) { m -= 12; y++ }
+  while (m < 1) { m += 12; y-- }
+  return `${y}-${String(m).padStart(2, '0')}`
+}
+
+{
+  const staticKeys = Object.keys(MONTH_SALES).sort()
+  const lastStaticKey = staticKeys[staticKeys.length - 1]
+  const now = new Date()
+  const curKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+  let k = lastStaticKey
+  while (k < curKey) {
+    k = addMonthKey(k, 1)
+    if (!MONTH_SALES[k]) MONTH_SALES[k] = emptyMonthSales()
+  }
+}
+
 export const SALES_MONTH_KEYS = Object.keys(MONTH_SALES).sort()
 
 export function salesMonthLabel(key) {
