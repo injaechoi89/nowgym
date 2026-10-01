@@ -4,7 +4,7 @@ import { SALES_MONTH_KEYS } from '../salesData.js'
 import { useLiveSales } from '../useLiveSales.js'
 import { useSyncedState } from '../useSyncedState.js'
 import { getCertPhotos, subscribeCertPhotos } from '../photoUtils.js'
-import { TYPES, TYPE_LABEL, DOT_COLOR, MONTHLY_TARGET } from './Task.jsx'
+import { TYPES, TYPE_LABEL, DOT_COLOR, MONTHLY_TARGET, hasPhoto } from './Task.jsx'
 
 export default function Home({role, myTrainer, onNavigate, onOpenTodayTask}) {
   const isOwner = role==='원장님'
@@ -37,7 +37,7 @@ export default function Home({role, myTrainer, onNavigate, onOpenTodayTask}) {
   const taskData = photos[myTrainer]||{}
   const taskKeysThisMonth = Object.keys(taskData).filter(k=>{const p=k.split('-');return +p[1]===TODAY.getMonth()+1 && +p[0]===TODAY.getFullYear()})
   const taskProgress = TYPES.map(t=>{
-    const done = taskKeysThisMonth.filter(k=>taskData[k]?.[t]).length
+    const done = taskKeysThisMonth.filter(k=>hasPhoto(taskData[k]||{},t)).length
     const target = MONTHLY_TARGET[t]
     return {t, done, target, pct: Math.min(100, Math.round(done/target*100))}
   })

@@ -11,6 +11,12 @@ export const MONTHLY_TARGET = {clean:20,insta:4,blog:4,review:2}
 
 export function toKey(y,m,d){return `${y}-${m+1}-${d}`}
 
+// 청소는 사진을 최대 2장(배열)까지 저장하고, 나머지 항목은 사진 1장(문자열)만 저장합니다.
+export const CLEAN_MAX = 2
+export function hasPhoto(day, t) {
+  return t==='clean' ? Array.isArray(day[t]) && day[t].some(Boolean) : !!day[t]
+}
+
 function IconInsta({size=26}) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24">
@@ -81,7 +87,7 @@ export default function Task({role, myTrainer, taskJump, onTaskJumpHandled}) {
   const fd = new Date(year,month,1).getDay()
   const dim = new Date(year,month+1,0).getDate()
   const allKeys = Object.keys(data).filter(k=>{const p=k.split('-');return +p[1]===month+1&&+p[0]===year})
-  const countOf = t => allKeys.filter(k=>data[k]?.[t]).length
+  const countOf = t => allKeys.filter(k=>hasPhoto(data[k]||{},t)).length
   const cleanDone = countOf('clean'), instaDone = countOf('insta'), blogDone = countOf('blog'), reviewDone = countOf('review')
 
   const changeMonth = d => {
@@ -98,7 +104,7 @@ export default function Task({role, myTrainer, taskJump, onTaskJumpHandled}) {
     const isFuture = year>TODAY.getFullYear() || (year===TODAY.getFullYear() && m>TODAY.getMonth())
     const isCurrent = year===TODAY.getFullYear() && m===TODAY.getMonth()
     const keys = Object.keys(data).filter(k=>{const p=k.split('-');return +p[1]===m+1 && +p[0]===year})
-    const counts = Object.fromEntries(TYPES.map(t=>[t, keys.filter(k=>data[k]?.[t]).length]))
+    const counts = Object.fromEntries(TYPES.map(t=>[t, keys.filter(k=>hasPhoto(data[k]||{},t)).length]))
     const totalTarget = TYPES.reduce((s,t)=>s+MONTHLY_TARGET[t],0)
     const totalDone = TYPES.reduce((s,t)=>s+counts[t],0)
     return {m, isFuture, isCurrent, counts, pct: Math.min(100, Math.round(totalDone/totalTarget*100))}
@@ -126,20 +132,21 @@ export default function Task({role, myTrainer, taskJump, onTaskJumpHandled}) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [taskJump])
 
-  const pickFile = (type) => {
-    const input = fileInputs.current[type]
+  const pickFile = (key) => {
+    const input = fileInputs.current[key]
     if (input) input.click()
   }
 
-  const onFileChosen = async (type, e) => {
+  const onFileChosen = async (type, e, slot=0) => {
     const file = e.target.files?.[0]
     e.target.value = ''
     if (!file || !modal) return
-    setBusyType(type)
+    const busyKey = type==='clean' ? `clean_${slot}` : type
+    setBusyType(busyKey)
     try {
       const raw = await readFileAsDataUrl(file)
       const processed = await processImage(raw, { timestamp: type==='clean' })
-      const ok = saveCertPhoto(effectiveTrainer, modal.k, type, processed)
+      const ok = saveCertPhoto(effectiveTrainer, modal.k, type, processed, slot)
       if (!ok) {
         alert('저장 공간이 부족해서 사진을 저장하지 못했어요. 오래된 인증 사진을 지우고 다시 시도해주세요.')
       }
@@ -150,9 +157,9 @@ export default function Task({role, myTrainer, taskJump, onTaskJumpHandled}) {
     }
   }
 
-  const removePhoto = (type) => {
+  const removePhoto = (type, slot=0) => {
     if (!window.confirm(`${TYPE_LABEL[type]} 인증 사진을 삭제할까요?`)) return
-    deleteCertPhoto(effectiveTrainer, modal.k, type)
+    deleteCertPhoto(effectiveTrainer, modal.k, type, slot)
   }
 
   const todayKey = toKey(TODAY.getFullYear(),TODAY.getMonth(),TODAY.getDate())
@@ -172,7 +179,18 @@ export default function Task({role, myTrainer, taskJump, onTaskJumpHandled}) {
         <div style={{display:'flex',gap:10,flexWrap:'wrap'}}>
           {TYPES.map(t=>(
             <div key={t} style={{textAlign:'center'}}>
-              {todayPhotos[t] ? (
+              {t==='clean' ? (
+                <div style={{display:'flex',gap:4}}>
+                  {Array.from({length:CLEAN_MAX}).map((_,i)=>{
+                    const photo = todayPhotos.clean?.[i]
+                    return photo ? (
+                      <img key={i} src={photo} alt={`${TYPE_LABEL.clean} ${i+1}`} style={{width:56,height:56,objectFit:'cover',borderRadius:8,border:'2px solid '+DOT_COLOR.clean,cursor:'pointer'}} onClick={()=>setPreview(photo)}/>
+                    ) : (
+                      <div key={i} style={{width:56,height:56,borderRadius:8,border:'1.5px dashed var(--border-strong)',display:'flex',alignItems:'center',justifyContent:'center',color:'var(--text3)',fontSize:10}}>미인증</div>
+                    )
+                  })}
+                </div>
+              ) : todayPhotos[t] ? (
                 <img src={todayPhotos[t]} alt={TYPE_LABEL[t]} style={{width:56,height:56,objectFit:'cover',borderRadius:8,border:'2px solid '+DOT_COLOR[t],cursor:'pointer'}} onClick={()=>setPreview(todayPhotos[t])}/>
               ) : (
                 <div style={{width:56,height:56,borderRadius:8,border:'1.5px dashed var(--border-strong)',display:'flex',alignItems:'center',justifyContent:'center',color:'var(--text3)',fontSize:10}}>미인증</div>
@@ -226,7 +244,7 @@ export default function Task({role, myTrainer, taskJump, onTaskJumpHandled}) {
           {Array(dim).fill(0).map((_,i)=>{
             const d=i+1, k=toKey(year,month,d)
             const day=data[k]||{}
-            const types=TYPES.filter(t=>day[t])
+            const types=TYPES.filter(t=>hasPhoto(day,t))
             const isToday=d===TODAY.getDate()&&month===TODAY.getMonth()&&year===TODAY.getFullYear()
             const isFuture=isFutureDate(year,month,d)
             const dw=new Date(year,month,d).getDay()
@@ -295,18 +313,46 @@ export default function Task({role, myTrainer, taskJump, onTaskJumpHandled}) {
             <div style={{fontSize:13,color:'var(--text3)',marginBottom:14}}>{effectiveTrainer} · {modal.y}년 {modal.m+1}월 {modal.d}일</div>
             <div style={{display:'flex',flexDirection:'column',gap:10,marginBottom:16}}>
               {TYPES.map(t=>{
+                if (t === 'clean') {
+                  const cleanPhotos = (photos[effectiveTrainer]?.[modal.k]||{}).clean || []
+                  return (
+                    <div key={t} style={{display:'flex',flexDirection:'column',gap:8}}>
+                      <div style={{fontSize:13,fontWeight:500}}>{TYPE_LABEL.clean} <span style={{fontSize:10,color:'var(--text3)',fontWeight:400}}>(최대 {CLEAN_MAX}장 · 촬영 시 시간이 자동으로 찍혀요)</span></div>
+                      <div style={{display:'flex',gap:14}}>
+                        {Array.from({length:CLEAN_MAX}).map((_,slot)=>{
+                          const photo = cleanPhotos[slot]
+                          const busyKey = `clean_${slot}`
+                          return (
+                            <div key={slot} style={{display:'flex',flexDirection:'column',alignItems:'center',gap:6}}>
+                              <input ref={el=>fileInputs.current[busyKey]=el} type="file" accept="image/*" capture="environment" style={{display:'none'}} onChange={e=>onFileChosen('clean',e,slot)} />
+                              {photo ? (
+                                <img src={photo} alt={`청소 ${slot+1}`} style={{width:48,height:48,objectFit:'cover',borderRadius:6,border:'1.5px solid '+DOT_COLOR.clean,cursor:'pointer'}} onClick={()=>setPreview(photo)}/>
+                              ) : (
+                                <div style={{width:48,height:48,borderRadius:6,border:'1.5px dashed var(--border-strong)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:16,color:'var(--text3)'}}>🧹</div>
+                              )}
+                              <div style={{display:'flex',gap:4}}>
+                                <button className="btn btn-outline" style={{padding:'5px 8px',fontSize:11}} disabled={busyType===busyKey} onClick={()=>pickFile(busyKey)}>{busyType===busyKey?'처리중...':(photo?'변경':'촬영')}</button>
+                                {photo&&<button className="btn btn-danger" style={{padding:'5px 8px',fontSize:11}} onClick={()=>removePhoto('clean',slot)}>삭제</button>}
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  )
+                }
                 const photo = (photos[effectiveTrainer]?.[modal.k]||{})[t]
                 const Icon = TYPE_ICON[t]
                 return (
                   <div key={t} style={{display:'flex',alignItems:'center',gap:10}}>
-                    <input ref={el=>fileInputs.current[t]=el} type="file" accept="image/*" capture={t==='clean'?'environment':undefined} style={{display:'none'}} onChange={e=>onFileChosen(t,e)} />
+                    <input ref={el=>fileInputs.current[t]=el} type="file" accept="image/*" style={{display:'none'}} onChange={e=>onFileChosen(t,e)} />
                     {photo ? (
                       <img src={photo} alt={TYPE_LABEL[t]} style={{width:48,height:48,objectFit:'cover',borderRadius:6,border:'1.5px solid '+DOT_COLOR[t],cursor:'pointer'}} onClick={()=>setPreview(photo)}/>
                     ) : (
-                      <div style={{width:48,height:48,borderRadius:6,border:'1.5px dashed var(--border-strong)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:16,color:'var(--text3)'}}>{t==='clean'?'🧹':<Icon/>}</div>
+                      <div style={{width:48,height:48,borderRadius:6,border:'1.5px dashed var(--border-strong)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:16,color:'var(--text3)'}}><Icon/></div>
                     )}
-                    <div style={{flex:1,fontSize:13,fontWeight:500}}>{TYPE_LABEL[t]}{t==='clean'&&<div style={{fontSize:10,color:'var(--text3)',fontWeight:400}}>촬영 시 시간이 자동으로 찍혀요</div>}</div>
-                    <button className="btn btn-outline" style={{padding:'6px 10px',fontSize:12}} disabled={busyType===t} onClick={()=>pickFile(t)}>{busyType===t?'처리중...':(photo?'다시 촬영/변경':(t==='clean'?'촬영':'사진 선택'))}</button>
+                    <div style={{flex:1,fontSize:13,fontWeight:500}}>{TYPE_LABEL[t]}</div>
+                    <button className="btn btn-outline" style={{padding:'6px 10px',fontSize:12}} disabled={busyType===t} onClick={()=>pickFile(t)}>{busyType===t?'처리중...':(photo?'다시 촬영/변경':'사진 선택')}</button>
                     {photo&&<button className="btn btn-danger" style={{padding:'6px 10px',fontSize:12}} onClick={()=>removePhoto(t)}>삭제</button>}
                   </div>
                 )

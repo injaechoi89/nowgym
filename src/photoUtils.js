@@ -52,9 +52,11 @@ import { db } from './firebase.js'
 
 // 사진 한 장 = Firestore 문서 한 개 (컬렉션 cert_photos). 문서당 1MB 제한을 사진 개수와
 // 무관하게 지키기 위해, 예전처럼 전체 사진을 문서 하나에 몰아넣지 않습니다.
+// 청소(clean)는 slot 0/1 두 장까지 허용합니다. slot 0은 기존 문서 ID를 그대로 써서
+// 예전에 저장된 청소 인증 사진과 호환되도록 하고, slot 1만 접미사를 붙입니다.
 const COLLECTION = 'cert_photos'
 const LOCAL_KEY = 'nowgym-cert-photos'
-const docId = (trainer, dateKey, type) => `${trainer}_${dateKey}_${type}`
+const docId = (trainer, dateKey, type, slot = 0) => slot ? `${trainer}_${dateKey}_${type}_${slot+1}` : `${trainer}_${dateKey}_${type}`
 
 let cache = {}
 try {
@@ -72,18 +74,32 @@ function notify() {
   listeners.forEach(fn => fn(cache))
 }
 
-function setInCache(trainer, dateKey, type, dataUrl) {
+function setInCache(trainer, dateKey, type, dataUrl, slot = 0) {
   const trData = { ...(cache[trainer] || {}) }
   const dayData = { ...(trData[dateKey] || {}) }
-  dayData[type] = dataUrl
+  if (type === 'clean') {
+    const arr = [...(dayData.clean || [])]
+    arr[slot] = dataUrl
+    dayData.clean = arr
+  } else {
+    dayData[type] = dataUrl
+  }
   trData[dateKey] = dayData
   cache = { ...cache, [trainer]: trData }
 }
 
-function removeFromCache(trainer, dateKey, type) {
+function removeFromCache(trainer, dateKey, type, slot = 0) {
   if (!cache[trainer]?.[dateKey]) return
   const dayData = { ...cache[trainer][dateKey] }
-  delete dayData[type]
+  if (type === 'clean') {
+    const arr = [...(dayData.clean || [])]
+    arr[slot] = undefined
+    while (arr.length && arr[arr.length - 1] == null) arr.pop()
+    if (arr.length) dayData.clean = arr
+    else delete dayData.clean
+  } else {
+    delete dayData[type]
+  }
   cache = { ...cache, [trainer]: { ...cache[trainer], [dateKey]: dayData } }
 }
 
@@ -94,8 +110,9 @@ function ensureStarted() {
   onSnapshot(collection(db, COLLECTION), snap => {
     snap.docChanges().forEach(change => {
       const d = change.doc.data()
-      if (change.type === 'removed') removeFromCache(d.trainer, d.dateKey, d.type)
-      else setInCache(d.trainer, d.dateKey, d.type, d.dataUrl)
+      const slot = d.slot || 0
+      if (change.type === 'removed') removeFromCache(d.trainer, d.dateKey, d.type, slot)
+      else setInCache(d.trainer, d.dateKey, d.type, d.dataUrl, slot)
     })
     notify()
   }, () => {})
@@ -113,17 +130,18 @@ export function subscribeCertPhotos(fn) {
 }
 
 // 성공하면 true, 로컬 저장 공간 초과 등으로 실패하면 false를 반환합니다.
-export function saveCertPhoto(trainer, dateKey, type, dataUrl) {
+// slot은 청소(clean) 사진을 2장까지 올릴 때 0 또는 1을 쓰고, 다른 항목은 항상 0(기본값)입니다.
+export function saveCertPhoto(trainer, dateKey, type, dataUrl, slot = 0) {
   ensureStarted()
-  setInCache(trainer, dateKey, type, dataUrl)
+  setInCache(trainer, dateKey, type, dataUrl, slot)
   notify()
-  setDoc(doc(db, COLLECTION, docId(trainer, dateKey, type)), { trainer, dateKey, type, dataUrl, updatedAt: Date.now() }).catch(() => {})
+  setDoc(doc(db, COLLECTION, docId(trainer, dateKey, type, slot)), { trainer, dateKey, type, dataUrl, slot, updatedAt: Date.now() }).catch(() => {})
   return true
 }
 
-export function deleteCertPhoto(trainer, dateKey, type) {
+export function deleteCertPhoto(trainer, dateKey, type, slot = 0) {
   ensureStarted()
-  removeFromCache(trainer, dateKey, type)
+  removeFromCache(trainer, dateKey, type, slot)
   notify()
-  deleteDoc(doc(db, COLLECTION, docId(trainer, dateKey, type))).catch(() => {})
+  deleteDoc(doc(db, COLLECTION, docId(trainer, dateKey, type, slot))).catch(() => {})
 }
