@@ -96,11 +96,18 @@ export function addWeeks(d,w){const r=asDate(d);const r2=new Date(r);r2.setDate(
 export function isPast(d){return d<new Date(TODAY.getFullYear(),TODAY.getMonth(),TODAY.getDate());}
 export function isHoliday(y,m,d){const dw=new Date(y,m-1,d).getDay();const ph=PH.has(y+'-'+m+'-'+d);return{isSat:dw===6,isSun:dw===0,isPh:ph,isH:dw===0||dw===6||ph};}
 
+// 특정 날짜 대신 "관리시스템 사용 전에 이미 썼다"는 걸 개수로만 기록하는 휴가 항목입니다.
+// 'note:' 접두사로 시작하는 문자열이면 날짜가 아니라 이 기록이고, 휴가 내역에는 VAC_LEGACY_NOTE
+// 문구로 표시되며 항상 "사용완료"로 집계됩니다.
+export const VAC_LEGACY_NOTE = '관리시스템 사용 전 휴가 사용'
+export const isVacNote = k => typeof k === 'string' && k.startsWith('note:')
+const legacyVacNotes = (name, n) => Array.from({length:n}, (_,i)=>`note:legacy-${name}-${i+1}`)
+
 export const VAC_DATA = {
-  정우:['2026-3-14','2026-4-2','2026-5-20','2026-6-10','2026-7-3','2026-8-15','2026-9-15','2026-9-22'],
-  준혁:['2026-1-20','2026-2-14','2026-4-5','2026-6-25','2026-8-8','2026-10-10'],
-  건호:['2026-2-3','2026-3-22','2026-5-5','2026-7-18','2026-9-12'],
-  인재:['2026-3-10','2026-4-20','2026-6-15','2026-8-1'],
+  정우: legacyVacNotes('정우', 7),
+  준혁: legacyVacNotes('준혁', 6),
+  건호: legacyVacNotes('건호', 4),
+  인재: [],
 };
 
 export const HOL_RECORDS_INIT = [

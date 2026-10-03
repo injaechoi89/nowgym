@@ -1,6 +1,6 @@
 import {useState} from 'react'
 import {useSyncedState} from '../useSyncedState.js'
-import {TODAY,ML,WD,TRAINERS,VAC_DATA,HOL_RECORDS_INIT,VACATION_QUOTA_INIT,fmt,fmtDate,isPast} from '../data.js'
+import {TODAY,ML,WD,TRAINERS,VAC_DATA,VAC_LEGACY_NOTE,isVacNote,HOL_RECORDS_INIT,VACATION_QUOTA_INIT,fmt,fmtDate,isPast} from '../data.js'
 import {HOL_TYPES,HOL_TYPE_COLOR,holidayBonusAmount,recordBonusAmount,holidayLabel} from '../holSettings.js'
 const holAmt = holidayBonusAmount
 const holLbl = holidayLabel
@@ -25,8 +25,10 @@ export default function Schedule({role, myTrainer}) {
   const changeMonth = d=>{let m=month+d,y=year;if(m>11){m=0;y++}if(m<0){m=11;y--}setMonth(m);setYear(y)}
   const vacs = vacData[effectiveTrainer]||[]
   const quota = vacQuota[effectiveTrainer] ?? 12
-  const used = vacs.filter(k=>{const p=k.split('-');return isPast(new Date(+p[0],+p[1]-1,+p[2]))}).length
-  const upcoming = vacs.filter(k=>{const p=k.split('-');return !isPast(new Date(+p[0],+p[1]-1,+p[2]))}).length
+  const dateVacs = vacs.filter(k=>!isVacNote(k))
+  const noteVacs = vacs.filter(isVacNote)
+  const used = noteVacs.length + dateVacs.filter(k=>{const p=k.split('-');return isPast(new Date(+p[0],+p[1]-1,+p[2]))}).length
+  const upcoming = dateVacs.filter(k=>{const p=k.split('-');return !isPast(new Date(+p[0],+p[1]-1,+p[2]))}).length
   const remain = quota-used-upcoming
   const monthRecs = holRecs.filter(r=>{const p=r.date.split('-');return +p[0]===year&&+p[1]===month+1})
   const holTotal = monthRecs.reduce((a,r)=>a+recordBonusAmount(r),0)
@@ -72,8 +74,8 @@ export default function Schedule({role, myTrainer}) {
                 {Array(fd).fill(0).map((_,i)=><div key={i} className="cc emp"></div>)}
                 {Array(dim).fill(0).map((_,i)=>{
                   const d=i+1,k=year+'-'+(month+1)+'-'+d
-                  const isVac=vacs.includes(k)
-                  const onVacAll=TRAINERS.filter(t=>(vacData[t.name]||[]).includes(k))
+                  const isVac=dateVacs.includes(k)
+                  const onVacAll=TRAINERS.filter(t=>(vacData[t.name]||[]).filter(v=>!isVacNote(v)).includes(k))
                   const past=isPast(new Date(year,month,d))
                   const isToday=d===TODAY.getDate()&&month===TODAY.getMonth()&&year===TODAY.getFullYear()
                   const dw=new Date(year,month,d).getDay()
@@ -108,10 +110,20 @@ export default function Schedule({role, myTrainer}) {
           </div>
           <div className="card">
             <div className="card-title">{effectiveTrainer} 휴가 내역</div>
-            {[...vacs].sort((a,b)=>{
-              const pa=a.split('-').map(Number), pb=b.split('-').map(Number)
-              return new Date(pa[0],pa[1]-1,pa[2]) - new Date(pb[0],pb[1]-1,pb[2])
-            }).map((k,i)=>({k,idx:i})).reverse().map(({k,idx})=>{
+            {[
+              ...noteVacs,
+              ...[...dateVacs].sort((a,b)=>{
+                const pa=a.split('-').map(Number), pb=b.split('-').map(Number)
+                return new Date(pa[0],pa[1]-1,pa[2]) - new Date(pb[0],pb[1]-1,pb[2])
+              }),
+            ].map((k,i)=>({k,idx:i})).reverse().map(({k,idx})=>{
+              if (isVacNote(k)) {
+                return <div key={k} style={{display:'flex',alignItems:'center',gap:8,padding:'7px 0',borderBottom:'0.5px solid var(--border)',fontSize:13}}>
+                  <span style={{fontSize:11,color:'var(--text3)',minWidth:32}}>{idx+1}번째</span>
+                  <span style={{flex:1,fontWeight:500,color:'var(--text3)'}}>{VAC_LEGACY_NOTE}</span>
+                  <span className="badge badge-g">사용완료</span>
+                </div>
+              }
               const p=k.split('-');const past=isPast(new Date(+p[0],+p[1]-1,+p[2]));const dw=new Date(+p[0],+p[1]-1,+p[2]).getDay()
               return <div key={k} style={{display:'flex',alignItems:'center',gap:8,padding:'7px 0',borderBottom:'0.5px solid var(--border)',fontSize:13}}>
                 <span style={{fontSize:11,color:'var(--text3)',minWidth:32}}>{idx+1}번째</span>
