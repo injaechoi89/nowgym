@@ -1,5 +1,5 @@
 import {useState} from 'react'
-import {TRAINERS,ML,fmt,fmtM,ptInsenFor} from '../data.js'
+import {TRAINERS,ML,fmt,fmtM,ptInsenFor,ptInsenPolicyFor,PT_INSEN_POLICY_INIT} from '../data.js'
 import {useLiveSales} from '../useLiveSales.js'
 export default function Dashboard({role}) {
   const {monthSales:MONTH_SALES, monthKeys:SALES_MONTH_KEYS} = useLiveSales()
@@ -17,6 +17,7 @@ export default function Dashboard({role}) {
   const prevKey = SALES_MONTH_KEYS[idx-1]
   const prev = prevKey ? MONTH_SALES[prevKey] : null
   const diff = prev?Math.round((d.total-prev.total)/prev.total*100):0
+  const ptPolicy = ptInsenPolicyFor(key, PT_INSEN_POLICY_INIT)
   const methods=[{label:'카드',val:d.card,c:'#378ADD'},{label:'계좌이체',val:d.account,c:'#1D9E75'},{label:'키오스크',val:d.kiosk,c:'#6B5CE7'},{label:'현금',val:d.cash,c:'#BA7517'}]
   const maxT = Math.max(...SALES_MONTH_KEYS.map(k=>MONTH_SALES[k].total))
   return (
@@ -56,7 +57,7 @@ export default function Dashboard({role}) {
               </div>
               <div style={{textAlign:'right'}}>
                 <div style={{fontSize:13,fontWeight:500,color:'var(--green)'}}>{fmtM(amt)}</div>
-                <div style={{fontSize:11,color:'var(--text3)'}}>{(()=>{const pi=ptInsenFor(tr.name,d.trainer);return pi>0?'인센 +'+fmt(pi):'인센 해당없음'})()}</div>
+                <div style={{fontSize:11,color:'var(--text3)'}}>{(()=>{const pi=ptInsenFor(tr.name,d.trainer,ptPolicy);return pi>0?'인센 +'+fmt(pi):'인센 해당없음'})()}</div>
               </div>
             </div>
           )})}

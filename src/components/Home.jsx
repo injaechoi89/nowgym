@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { TRAINERS, TODAY, PT_MEMBERS_INIT, PT_DATA, HOL_RECORDS_INIT, SALARY_POLICY_INIT, fmt, fmtM, ML, ptInsenFor, calcTrainerSalaryForMonth, addWeeks } from '../data.js'
+import { TRAINERS, TODAY, PT_MEMBERS_INIT, PT_DATA, HOL_RECORDS_INIT, SALARY_POLICY_INIT, PT_INSEN_POLICY_INIT, fmt, fmtM, ML, ptInsenFor, ptInsenPolicyFor, calcTrainerSalaryForMonth, addWeeks } from '../data.js'
 import { SALES_MONTH_KEYS } from '../salesData.js'
 import { useLiveSales } from '../useLiveSales.js'
 import { useSyncedState } from '../useSyncedState.js'
@@ -19,7 +19,7 @@ export default function Home({role, myTrainer, onNavigate, onOpenTodayTask}) {
   const curMonth = curMonthNum
   const diff = prev ? Math.round((d.total-prev.total)/prev.total*100) : 0
   const myAmt = d.trainer[myTrainer]||0
-  const myPtInsen = ptInsenFor(myTrainer, d.trainer)
+  const myPtInsen = ptInsenFor(myTrainer, d.trainer, ptInsenPolicyFor(curKey, PT_INSEN_POLICY_INIT))
 
   const [salaryPolicies] = useSyncedState('nowgym-salary-policy', SALARY_POLICY_INIT)
   const [holRecs] = useSyncedState('nowgym-holiday-work', HOL_RECORDS_INIT)

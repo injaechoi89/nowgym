@@ -65,15 +65,42 @@ export const PT_MEMBERS_INIT=[
   {id:3,name:'오소연',phone:'010-5678-9012',birth:'951130',gender:'여',trainer:'정우',goal:'다이어트',product:PRODUCTS_INIT[4],regType:'신규',payMethod:'카드',start:new Date(2026,6,7),actual:1100000,staff:'정우'},
 ].map(m=>({...m,contracts:[{id:'c'+m.id,product:m.product,regType:m.regType,payMethod:m.payMethod,start:m.start,actual:m.actual,staff:m.staff}]}))
 export function getTier(tiers,val){let r=tiers[0];for(let t of tiers){if(val>=t[0])r=t;else break;}return r;}
-// PT 인센티브: 정우·준혁·건호 세 명의 PT 매출 합산이 월 800만원 이상이면, 그 달은 세 명 각자 본인 PT 매출의 10%를 인센티브로 지급합니다. (인재는 대상 제외)
+// PT 인센티브 대상 트레이너(인재는 항상 대상 제외). 체계가 바뀌어도 대상자 명단은 그대로입니다.
 export const PT_INSEN_TRAINERS = ['정우','준혁','건호']
-export const PT_INSEN_THRESHOLD = 8000000
-export const PT_INSEN_RATE = 0.10
-export function ptInsenGroupTotal(trainerSales){ return PT_INSEN_TRAINERS.reduce((a,n)=>a+(trainerSales[n]||0),0) }
-export function ptInsenFor(name,trainerSales){
-  if(!PT_INSEN_TRAINERS.includes(name)) return 0
-  if(ptInsenGroupTotal(trainerSales) < PT_INSEN_THRESHOLD) return 0
-  return Math.round((trainerSales[name]||0)*PT_INSEN_RATE)
+// PT 인센티브 산정 체계는 적용 시작월(effectiveFrom, 'YYYY-MM')을 가진 이력으로 관리합니다.
+// 2026년 9월까지(type:'group'): 정우·준혁·건호 세 명의 PT 매출 합산이 threshold 이상이면, 세 명 각자 본인 PT 매출의 rate를 인센티브로 지급.
+// 2026년 10월부터(type:'individual'): 그룹 기준 대신 트레이너 개인별 PT 매출 기준금액(tiers)으로 바뀌어, 각자 자기 매출이 tiers의 min을 넘으면
+// 그 구간의 rate를 받습니다. tiers 안에 구간이 여러 개면(예: 정우) 매출이 가장 높은 구간부터 맞는 첫 구간을 적용합니다.
+export const PT_INSEN_POLICY_INIT = [
+  {id:'pip1', effectiveFrom:'2025-01', type:'group', trainers:PT_INSEN_TRAINERS, threshold:8000000, rate:0.10},
+  {id:'pip2', effectiveFrom:'2026-10', type:'individual', tiers:{
+    정우:[{min:6000000,rate:0.15},{min:4000000,rate:0.10}],
+    준혁:[{min:3000000,rate:0.10}],
+    건호:[{min:2660000,rate:0.10}],
+  }},
+]
+// monthKey('YYYY-MM') 시점에 유효했던 PT 인센티브 체계를 찾습니다. (salaryPolicyFor와 동일한 방식)
+export function ptInsenPolicyFor(monthKey, policies){
+  const sorted = [...policies].sort((a,b)=>a.effectiveFrom.localeCompare(b.effectiveFrom))
+  let picked = sorted[0]
+  for(const p of sorted){ if(p.effectiveFrom<=monthKey) picked=p; else break }
+  return picked
+}
+export function ptInsenGroupTotal(trainerSales, policy){
+  const names = policy?.type==='group' ? policy.trainers : PT_INSEN_TRAINERS
+  return names.reduce((a,n)=>a+(trainerSales[n]||0),0)
+}
+export function ptInsenFor(name, trainerSales, policy){
+  if(policy.type==='group'){
+    if(!policy.trainers.includes(name)) return 0
+    if(ptInsenGroupTotal(trainerSales,policy) < policy.threshold) return 0
+    return Math.round((trainerSales[name]||0)*policy.rate)
+  }
+  const tiers = policy.tiers[name]
+  if(!tiers) return 0
+  const amt = trainerSales[name]||0
+  const hit = [...tiers].sort((a,b)=>b.min-a.min).find(t=>amt>=t.min)
+  return hit ? Math.round(amt*hit.rate) : 0
 }
 // 급여 원천징수: 정우·준혁·건호는 사업소득(3.3%) 방식으로 지급해서, 실제 통장에 들어가는 금액은
 // 세전 총액에서 사업소득세 3%·지방소득세 0.3%를 뗀 금액입니다. (인재는 해당 없음)
@@ -158,7 +185,7 @@ export function calcTrainerSalaryForMonth(name, key, {salaryPolicies, holRecs, m
   const base = policy.base[name] || 1300000
   const taskInsen = policy.taskInsen[name] ?? 400000
   const mi = getTier(MT, Math.round(d.total/10000))[1]
-  const ptInsen = ptInsenFor(name, d.trainer)
+  const ptInsen = ptInsenFor(name, d.trainer, ptInsenPolicyFor(key, PT_INSEN_POLICY_INIT))
   const hol = sumHolidayBonus(holRecs, name, +year, month)
   const qI = getQInsen(key, monthSales).insen
   return base+taskInsen+mi+ptInsen+hol+qI

@@ -1,6 +1,6 @@
 import {useState} from 'react'
 import {useSyncedState} from '../useSyncedState.js'
-import {TRAINERS,SALARY_POLICY_INIT,salaryPolicyFor,MT,ML,HOL_RECORDS_INIT,getTier,fmt,fmtM,sumHolidayBonus,PT_INSEN_TRAINERS,ptInsenGroupTotal,ptInsenFor,PT_INSEN_THRESHOLD,getQInsen,calcWithholding,WITHHOLDING_TRAINERS} from '../data.js'
+import {TRAINERS,SALARY_POLICY_INIT,salaryPolicyFor,MT,ML,HOL_RECORDS_INIT,getTier,fmt,fmtM,sumHolidayBonus,PT_INSEN_TRAINERS,PT_INSEN_POLICY_INIT,ptInsenPolicyFor,ptInsenGroupTotal,ptInsenFor,getQInsen,calcWithholding,WITHHOLDING_TRAINERS} from '../data.js'
 import {useLiveSales} from '../useLiveSales.js'
 
 export default function Salary({role, myTrainer}) {
@@ -20,22 +20,33 @@ export default function Salary({role, myTrainer}) {
   const mi = getTier(MT,totalManwon)[1]
   const qInfo = getQInsen(key,MONTH_SALES)
   const qEnds=[3,6,9,12]; const hasQ=qEnds.includes(month)&&qInfo.insen>0
-  const ptGroupTotal = ptInsenGroupTotal(d.trainer)
-  const ptGroupEligible = ptGroupTotal >= PT_INSEN_THRESHOLD
+  const ptPolicy = ptInsenPolicyFor(key, PT_INSEN_POLICY_INIT)
+  const ptGroupTotal = ptPolicy.type==='group' ? ptInsenGroupTotal(d.trainer, ptPolicy) : 0
+  const ptGroupEligible = ptPolicy.type==='group' && ptGroupTotal >= ptPolicy.threshold
+  const ptTierInfoFor = name => {
+    if (ptPolicy.type!=='individual') return null
+    const tiers = ptPolicy.tiers[name]
+    if (!tiers) return null
+    const amt = d.trainer[name]||0
+    const hit = [...tiers].sort((a,b)=>b.min-a.min).find(t=>amt>=t.min)
+    const desc = [...tiers].sort((a,b)=>a.min-b.min).map(t=>`${fmtM(t.min)}↑ ${Math.round(t.rate*100)}%`).join(' · ')
+    return {hit, desc}
+  }
   const nextMonth = month<12?ML[month]:'익년 1월'
   const calcTrainer = tr => {
     const base=policy.base[tr.name]||1300000
     const taskInsen=policy.taskInsen[tr.name]??400000
     const fixed=base+taskInsen
     const ptAmt=d.trainer[tr.name]||0
-    const ptEligible=PT_INSEN_TRAINERS.includes(tr.name)
-    const ptInsen=ptInsenFor(tr.name,d.trainer)
+    const ptEligible=ptPolicy.type==='group' ? ptPolicy.trainers.includes(tr.name) : !!ptPolicy.tiers[tr.name]
+    const ptInsen=ptInsenFor(tr.name,d.trainer,ptPolicy)
+    const ptTier=ptTierInfoFor(tr.name)
     const hol=sumHolidayBonus(holRecs, tr.name, +year, month)
     const qI=qInfo.insen
     const total=fixed+mi+ptInsen+hol+qI
     const wh=calcWithholding(tr.name,total)
     const viewTotal=payView==='net'?wh.net:total
-    return {tr, base, taskInsen, ptAmt, ptEligible, ptInsen, hol, qI, total, wh, viewTotal}
+    return {tr, base, taskInsen, ptAmt, ptEligible, ptInsen, ptTier, hol, qI, total, wh, viewTotal}
   }
   const trainerCalcs = visibleTrainers.map(calcTrainer)
   const excInjaeTotal = trainerCalcs.filter(c=>c.tr.name!=='인재').reduce((a,c)=>a+c.viewTotal,0)
@@ -47,7 +58,7 @@ export default function Salary({role, myTrainer}) {
     const qIM = getQInsen(mk, MONTH_SALES).insen
     const base = pol.base[name] || 1300000
     const taskInsen = pol.taskInsen[name] ?? 400000
-    const ptInsen = ptInsenFor(name, md.trainer)
+    const ptInsen = ptInsenFor(name, md.trainer, ptInsenPolicyFor(mk, PT_INSEN_POLICY_INIT))
     const hol = sumHolidayBonus(holRecs, name, +my, mm)
     const total = base + taskInsen + miM + ptInsen + hol + qIM
     return payView==='net' ? calcWithholding(name,total).net : total
@@ -106,7 +117,7 @@ export default function Salary({role, myTrainer}) {
         </div>
       )}
       <div className="grid-2">
-        {trainerCalcs.map(({tr, base, taskInsen, ptAmt, ptEligible, ptInsen, hol, qI, total, wh, viewTotal})=>{
+        {trainerCalcs.map(({tr, base, taskInsen, ptAmt, ptEligible, ptInsen, ptTier, hol, qI, total, wh, viewTotal})=>{
           const withheld = WITHHOLDING_TRAINERS.includes(tr.name)
           return (
             <div key={tr.name} className="card" style={{padding:0,overflow:'hidden'}}>
@@ -135,8 +146,12 @@ export default function Salary({role, myTrainer}) {
                 <div style={{fontSize:11,fontWeight:500,color:'var(--text3)',padding:'6px 0 3px'}}>PT 인센</div>
                 <div className="rrow">
                   <span className="rl">
-                    {ptEligible ? `PT 인센 (${fmtM(ptAmt)} × 10%)` : 'PT 인센 (대상 제외)'}
-                    {ptEligible && <span style={{fontSize:10,color:'var(--text3)',display:'block',marginTop:2}}>정우·준혁·건호 합산 {fmtM(ptGroupTotal)} {ptGroupEligible?'≥':'<'} 800만 {ptGroupEligible?'(지급 대상)':'(미달)'}</span>}
+                    {!ptEligible ? 'PT 인센 (대상 제외)'
+                      : ptPolicy.type==='group' ? `PT 인센 (${fmtM(ptAmt)} × ${Math.round(ptPolicy.rate*100)}%)`
+                      : ptTier?.hit ? `PT 인센 (${fmtM(ptAmt)} × ${Math.round(ptTier.hit.rate*100)}%)`
+                      : `PT 인센 (${fmtM(ptAmt)}, 기준 미달)`}
+                    {ptEligible && ptPolicy.type==='group' && <span style={{fontSize:10,color:'var(--text3)',display:'block',marginTop:2}}>정우·준혁·건호 합산 {fmtM(ptGroupTotal)} {ptGroupEligible?'≥':'<'} {fmtM(ptPolicy.threshold)} {ptGroupEligible?'(지급 대상)':'(미달)'}</span>}
+                    {ptEligible && ptPolicy.type==='individual' && <span style={{fontSize:10,color:'var(--text3)',display:'block',marginTop:2}}>기준 {ptTier.desc}</span>}
                   </span>
                   <span className="rv g">{ptEligible?(ptInsen>0?'+'+fmt(ptInsen):'0원'):'해당없음'}</span>
                 </div>
