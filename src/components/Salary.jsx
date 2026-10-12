@@ -1,6 +1,6 @@
 import {useState} from 'react'
 import {useSyncedState} from '../useSyncedState.js'
-import {TRAINERS,SALARY_POLICY_INIT,salaryPolicyFor,MT,ML,HOL_RECORDS_INIT,getTier,fmt,fmtM,sumHolidayBonus,PT_INSEN_TRAINERS,PT_INSEN_POLICY_INIT,ptInsenPolicyFor,ptInsenGroupTotal,ptInsenFor,getQInsen,calcWithholding,WITHHOLDING_TRAINERS} from '../data.js'
+import {TRAINERS,SALARY_POLICY_INIT,salaryPolicyFor,MT,ML,HOL_RECORDS_INIT,getTier,fmt,fmtM,sumHolidayBonus,PT_INSEN_TRAINERS,PT_INSEN_POLICY_INIT,ptInsenPolicyFor,ptInsenGroupTotal,ptInsenFor,getQInsen,getYInsen,calcWithholding,WITHHOLDING_TRAINERS} from '../data.js'
 import {useLiveSales} from '../useLiveSales.js'
 
 export default function Salary({role, myTrainer}) {
@@ -20,6 +20,8 @@ export default function Salary({role, myTrainer}) {
   const mi = getTier(MT,totalManwon)[1]
   const qInfo = getQInsen(key,MONTH_SALES)
   const qEnds=[3,6,9,12]; const hasQ=qEnds.includes(month)&&qInfo.insen>0
+  const yInfo = getYInsen(key,MONTH_SALES)
+  const hasY = month===12&&yInfo.insen>0
   const ptPolicy = ptInsenPolicyFor(key, PT_INSEN_POLICY_INIT)
   const ptGroupTotal = ptPolicy.type==='group' ? ptInsenGroupTotal(d.trainer, ptPolicy) : 0
   const ptGroupEligible = ptPolicy.type==='group' && ptGroupTotal >= ptPolicy.threshold
@@ -43,10 +45,11 @@ export default function Salary({role, myTrainer}) {
     const ptTier=ptTierInfoFor(tr.name)
     const hol=sumHolidayBonus(holRecs, tr.name, +year, month)
     const qI=qInfo.insen
-    const total=fixed+mi+ptInsen+hol+qI
+    const yI=yInfo.insen
+    const total=fixed+mi+ptInsen+hol+qI+yI
     const wh=calcWithholding(tr.name,total)
     const viewTotal=payView==='net'?wh.net:total
-    return {tr, base, taskInsen, ptAmt, ptEligible, ptInsen, ptTier, hol, qI, total, wh, viewTotal}
+    return {tr, base, taskInsen, ptAmt, ptEligible, ptInsen, ptTier, hol, qI, yI, total, wh, viewTotal}
   }
   const trainerCalcs = visibleTrainers.map(calcTrainer)
   const excInjaeTotal = trainerCalcs.filter(c=>c.tr.name!=='인재').reduce((a,c)=>a+c.viewTotal,0)
@@ -56,11 +59,12 @@ export default function Salary({role, myTrainer}) {
     const pol = salaryPolicyFor(mk, salaryPolicies)
     const miM = getTier(MT, Math.round(md.total/10000))[1]
     const qIM = getQInsen(mk, MONTH_SALES).insen
+    const yIM = getYInsen(mk, MONTH_SALES).insen
     const base = pol.base[name] || 1300000
     const taskInsen = pol.taskInsen[name] ?? 400000
     const ptInsen = ptInsenFor(name, md.trainer, ptInsenPolicyFor(mk, PT_INSEN_POLICY_INIT))
     const hol = sumHolidayBonus(holRecs, name, +my, mm)
-    const total = base + taskInsen + miM + ptInsen + hol + qIM
+    const total = base + taskInsen + miM + ptInsen + hol + qIM + yIM
     return payView==='net' ? calcWithholding(name,total).net : total
   }
   const calcExcInjaeTotalForMonth = mk => PT_INSEN_TRAINERS.reduce((sum, name) => sum + calcTotalForMonth(name, mk), 0)
@@ -117,7 +121,7 @@ export default function Salary({role, myTrainer}) {
         </div>
       )}
       <div className="grid-2">
-        {trainerCalcs.map(({tr, base, taskInsen, ptAmt, ptEligible, ptInsen, ptTier, hol, qI, total, wh, viewTotal})=>{
+        {trainerCalcs.map(({tr, base, taskInsen, ptAmt, ptEligible, ptInsen, ptTier, hol, qI, yI, total, wh, viewTotal})=>{
           const withheld = WITHHOLDING_TRAINERS.includes(tr.name)
           return (
             <div key={tr.name} className="card" style={{padding:0,overflow:'hidden'}}>
@@ -164,6 +168,10 @@ export default function Salary({role, myTrainer}) {
                   <span className="rl">분기 인센 <span style={{fontSize:10,background:'var(--blue-light)',color:'var(--blue-dark)',padding:'1px 6px',borderRadius:8,marginLeft:4}}>분기</span>{hasQ&&<span style={{fontSize:10,color:'var(--text3)',display:'block',marginTop:2}}>{qInfo.label}</span>}</span>
                   <span className="rv" style={{color:hasQ?'var(--blue)':'var(--text3)'}}>{hasQ?'+'+fmt(qI):'해당없음'}</span>
                 </div>
+                <div className="rrow">
+                  <span className="rl">연 인센 <span style={{fontSize:10,background:'var(--blue-light)',color:'var(--blue-dark)',padding:'1px 6px',borderRadius:8,marginLeft:4}}>12월</span>{hasY&&<span style={{fontSize:10,color:'var(--text3)',display:'block',marginTop:2}}>{yInfo.label}</span>}</span>
+                  <span className="rv" style={{color:hasY?'var(--blue)':'var(--text3)'}}>{hasY?'+'+fmt(yI):'해당없음'}</span>
+                </div>
                 {withheld && (
                   <>
                     <div style={{fontSize:11,fontWeight:500,color:'var(--text3)',padding:'6px 0 3px'}}>세금 공제 <span style={{fontSize:10,background:'var(--red-light)',color:'var(--red)',padding:'1px 6px',borderRadius:8,marginLeft:4}}>사업소득 3.3%</span></div>
@@ -190,7 +198,7 @@ export default function Salary({role, myTrainer}) {
               const pct=Math.round(total/maxMonthlyTotal*100)
               const [ky,km]=mk.split('-')
               return (
-                <div key={mk} style={{display:'flex',alignItems:'center',gap:10}}>
+                <div key={mk} style={{display:'flex',alignItems:'center',gap:10,cursor:'pointer'}} onClick={()=>{setIdx(i);window.scrollTo({top:0,behavior:'smooth'})}}>
                   <div style={{fontSize:11,color:'var(--text3)',width:52,textAlign:'right',flexShrink:0}}>{ky.slice(2)}.{km}월</div>
                   <div style={{flex:1,height:22,background:'var(--surface1)',borderRadius:4,overflow:'hidden'}}>
                     <div style={{height:'100%',width:pct+'%',background:i===idx?'var(--green)':'var(--blue)',borderRadius:4,display:'flex',alignItems:'center',paddingLeft:8,fontSize:10,color:'#fff',fontWeight:500}}>{pct>25?fmtM(total):''}</div>
@@ -211,7 +219,7 @@ export default function Salary({role, myTrainer}) {
               const pct=Math.round(total/maxMyMonthlyTotal*100)
               const [ky,km]=mk.split('-')
               return (
-                <div key={mk} style={{display:'flex',alignItems:'center',gap:10}}>
+                <div key={mk} style={{display:'flex',alignItems:'center',gap:10,cursor:'pointer'}} onClick={()=>{setIdx(i);window.scrollTo({top:0,behavior:'smooth'})}}>
                   <div style={{fontSize:11,color:'var(--text3)',width:52,textAlign:'right',flexShrink:0}}>{ky.slice(2)}.{km}월</div>
                   <div style={{flex:1,height:22,background:'var(--surface1)',borderRadius:4,overflow:'hidden'}}>
                     <div style={{height:'100%',width:pct+'%',background:i===idx?'var(--green)':'var(--blue)',borderRadius:4,display:'flex',alignItems:'center',paddingLeft:8,fontSize:10,color:'#fff',fontWeight:500}}>{pct>25?fmtM(total):''}</div>

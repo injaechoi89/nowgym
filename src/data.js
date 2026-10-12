@@ -39,6 +39,7 @@ export function salaryPolicyFor(monthKey, policies){
 }
 export const MT = [[0,0],[2750,100000],[3000,200000],[3300,300000],[3500,400000],[3700,500000],[4000,600000],[4200,800000]];
 export const QT = [[0,0],[8000,500000],[8500,600000],[9000,700000],[9500,800000],[10000,900000],[10500,1000000],[11000,1200000],[11500,1400000]];
+export const AT = [[0,0],[33000,1000000],[35000,1200000],[37000,1400000],[39000,1600000],[40000,2000000],[42000,2200000],[45000,2500000],[47000,3000000]];
 export const PH = new Set(['2026-1-1','2026-1-28','2026-1-29','2026-1-30','2026-3-1','2026-5-5','2026-5-25','2026-6-6','2026-8-15','2026-9-24','2026-9-25','2026-9-26','2026-10-3','2026-10-9','2026-12-25']);
 export const EX_CATEGORIES = {
   '가슴':['벤치프레스','인클라인 벤치프레스','덤벨 플라이','푸시업','딥스'],
@@ -177,7 +178,17 @@ export function getQInsen(key,sales){
   return{insen,label:`${q}분기 (${ML[firstM-1]}~${ML[lastM-1]}, 총 ${qSum.toLocaleString()}만원)`}
 }
 
-// 트레이너 한 명의 특정 달 최종 급여(기본급+과업인센+센터매출인센+PT인센+휴일근무+분기인센) 합계.
+// 12월에만 지급되는 연간 매출 인센티브. 그 해 1~12월 매출 합산(만원 단위)으로 구간을 찾습니다.
+export function getYInsen(key,sales){
+  const [yearStr,monthStr]=key.split('-'); const year=+yearStr; const m=+monthStr
+  if(m!==12)return{insen:0,label:''};
+  const yKeys=Array.from({length:12},(_,i)=>`${year}-${String(i+1).padStart(2,'0')}`).filter(k=>sales[k])
+  const ySum=yKeys.reduce((a,k)=>a+Math.round((sales[k]?.total||0)/10000),0)
+  const insen=getTier(AT,ySum)[1]
+  return{insen,label:`${year}년 (총 ${ySum.toLocaleString()}만원)`}
+}
+
+// 트레이너 한 명의 특정 달 최종 급여(기본급+과업인센+센터매출인센+PT인센+휴일근무+분기인센+연간인센) 합계.
 export function calcTrainerSalaryForMonth(name, key, {salaryPolicies, holRecs, monthSales}) {
   const d = monthSales[key]
   const [year, monthStr] = key.split('-'); const month = +monthStr
@@ -188,5 +199,6 @@ export function calcTrainerSalaryForMonth(name, key, {salaryPolicies, holRecs, m
   const ptInsen = ptInsenFor(name, d.trainer, ptInsenPolicyFor(key, PT_INSEN_POLICY_INIT))
   const hol = sumHolidayBonus(holRecs, name, +year, month)
   const qI = getQInsen(key, monthSales).insen
-  return base+taskInsen+mi+ptInsen+hol+qI
+  const yI = getYInsen(key, monthSales).insen
+  return base+taskInsen+mi+ptInsen+hol+qI+yI
 }
