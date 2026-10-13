@@ -29,7 +29,7 @@ export default function PT({role, myTrainer, onOpenDiary}) {
   const [form, setForm] = useState(emptyForm())
   const [memberPickerOpen, setMemberPickerOpen] = useState(false)
   const pts = (ptData[effectiveTrainer]||[]).filter(p=>typeof p.dateKey==='string')
-  const myMembers = members.filter(m=>m.trainer===effectiveTrainer)
+  const myMembers = members.filter(m=>m.trainer===effectiveTrainer).sort((a,b)=>a.name.localeCompare(b.name,'ko'))
   const selectedMember = myMembers.find(m=>m.name===form.m)
   const allowedType = selectedMember ? selectedMember.product.type : null
   const lookup = {}
