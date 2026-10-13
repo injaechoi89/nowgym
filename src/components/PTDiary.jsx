@@ -133,7 +133,8 @@ export default function PTDiary({role, myTrainer, diaryJump, onDiaryJumpHandled}
   const openKk=l=>{
     const exLines=l.exs.map((e,i)=>{
       const setsStr=e.sets.map((s,si)=>`${si+1}세트 ${s.w>0?s.w+'kg ':''}${s.r}${s.u||'회'}`).join(', ')
-      return `${i+1}) ${e.name} — ${e.sets.length}세트\n   ${setsStr}`
+      const memoLine=e.memo?`\n   📝 ${e.memo}`:''
+      return `${i+1}) ${e.name} — ${e.sets.length}세트\n   ${setsStr}${memoLine}`
     }).join('\n\n')
     let member=members.find(m=>m.name===l.memberName)
     if(member&&!member.token){
