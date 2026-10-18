@@ -64,7 +64,7 @@ export default function PT({role, myTrainer, onOpenDiary}) {
       return da-db || a.hour.localeCompare(b.hour)
     })
     const pos = slots.findIndex(s=>s.dateKey===dateKey && s.hour===hour) + 1
-    return {n: pos, total: mem.product.count}
+    return {n: pos, total: mem.count ?? mem.product.count}
   }
 
   const sessionCount = (booking) => {

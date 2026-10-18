@@ -12,12 +12,12 @@ export default function PTContract({role, myTrainer}) {
   const [cur,setCur]=useState(null)
   const [renewMode,setRenewMode]=useState(false)
   const [editContractId,setEditContractId]=useState(null)
-  const [form,setForm]=useState({name:'',phone:'',birth:'',gender:'남',trainer:'인재',goal:'',regType:'신규',payMethod:'카드',start:toDateInput(TODAY),actual:'',staff:'인재',productId:'f10'})
+  const parseDateInput=s=>{const p=s.split('-');return new Date(+p[0],+p[1]-1,+p[2])}
+  const defaultsFor=(startStr,prod)=>({expire:toDateInput(addWeeks(parseDateInput(startStr),prod.weeks)),count:prod.count})
+  const [form,setForm]=useState({name:'',phone:'',birth:'',gender:'남',trainer:'인재',goal:'',regType:'신규',payMethod:'카드',start:toDateInput(TODAY),actual:'',staff:'인재',productId:'f10',expire:toDateInput(addWeeks(TODAY,PRODUCTS_INIT.find(p=>p.id==='f10').weeks)),count:PRODUCTS_INIT.find(p=>p.id==='f10').count})
   const [kkModal,setKkModal]=useState(null)
   const [search,setSearch]=useState('')
   const selProd=products.find(p=>p.id===form.productId)||products[3]||products[0]
-  const startDate=form.start?new Date(form.start):TODAY
-  const expireDate=addWeeks(startDate,selProd.weeks)
   const actual=parseInt(form.actual)||selProd.price
   const discount=selProd.price-actual
   const roleMembers = isOwner ? members : members.filter(m=>m.trainer===myTrainer)
@@ -27,17 +27,34 @@ export default function PTContract({role, myTrainer}) {
     m.name.toLowerCase().includes(searchQ) || (searchDigits && (m.phone||'').replace(/\D/g,'').includes(searchDigits))
   )
   const contractsOf = m => (m.contracts && m.contracts.length) ? m.contracts : [{id:'legacy-'+m.id,product:m.product,regType:m.regType,payMethod:m.payMethod,start:m.start,actual:m.actual,staff:m.staff}]
-  const openNew=()=>{setForm({name:'',phone:'',birth:'',gender:'남',trainer:isOwner?'인재':myTrainer,goal:'',regType:'신규',payMethod:'카드',start:toDateInput(TODAY),actual:'',staff:isOwner?'인재':myTrainer,productId:'f10'});setCur(null);setRenewMode(false);setEditContractId(null);setView('form')}
-  const openRenew=m=>{setForm({name:m.name,phone:m.phone,birth:m.birth,gender:m.gender,trainer:m.trainer,goal:m.goal||'',regType:'재등록',payMethod:m.payMethod,start:toDateInput(TODAY),actual:'',staff:m.staff,productId:m.product.id});setCur(m);setRenewMode(true);setEditContractId(null);setView('form')}
-  const openEditContract=(m,c)=>{setForm({name:m.name,phone:m.phone,birth:m.birth,gender:m.gender,trainer:m.trainer,goal:m.goal||'',regType:c.regType,payMethod:c.payMethod,start:toDateInput(c.start),actual:c.actual,staff:c.staff,productId:c.product.id});setCur(m);setRenewMode(false);setEditContractId(c.id);setView('form')}
+  const openNew=()=>{
+    const start=toDateInput(TODAY)
+    const prod=products.find(p=>p.id==='f10')||products[3]||products[0]
+    setForm({name:'',phone:'',birth:'',gender:'남',trainer:isOwner?'인재':myTrainer,goal:'',regType:'신규',payMethod:'카드',start,actual:'',staff:isOwner?'인재':myTrainer,productId:prod.id,...defaultsFor(start,prod)})
+    setCur(null);setRenewMode(false);setEditContractId(null);setView('form')
+  }
+  const openRenew=m=>{
+    const start=toDateInput(TODAY)
+    setForm({name:m.name,phone:m.phone,birth:m.birth,gender:m.gender,trainer:m.trainer,goal:m.goal||'',regType:'재등록',payMethod:m.payMethod,start,actual:'',staff:m.staff,productId:m.product.id,...defaultsFor(start,m.product)})
+    setCur(m);setRenewMode(true);setEditContractId(null);setView('form')
+  }
+  const openEditContract=(m,c)=>{
+    const start=toDateInput(c.start)
+    setForm({name:m.name,phone:m.phone,birth:m.birth,gender:m.gender,trainer:m.trainer,goal:m.goal||'',regType:c.regType,payMethod:c.payMethod,start,actual:c.actual,staff:c.staff,productId:c.product.id,
+      expire:c.expire?toDateInput(c.expire):toDateInput(addWeeks(c.start,c.product.weeks)),
+      count:c.count??c.product.count})
+    setCur(m);setRenewMode(false);setEditContractId(c.id);setView('form')
+  }
   const notifyNewMember=(name,trainer,regType)=>{
     fetch('/api/notify-new-member',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,trainer,regType})}).catch(()=>{})
   }
   const saveForm=()=>{
     const p=form.start.split('-'); const sd=new Date(+p[0],+p[1]-1,+p[2])
+    const ep=form.expire.split('-'); const expireDate=new Date(+ep[0],+ep[1]-1,+ep[2])
+    const countVal=parseInt(form.count)||selProd.count
     if(cur&&renewMode){
-      const newContract={id:'c'+Date.now(),product:selProd,regType:form.regType,payMethod:form.payMethod,start:sd,actual,staff:form.staff}
-      const nm={...cur,name:form.name||cur.name,phone:form.phone||cur.phone,birth:form.birth,gender:form.gender,trainer:form.trainer,goal:form.goal,product:selProd,regType:form.regType,payMethod:form.payMethod,start:sd,actual,staff:form.staff,contracts:[...(cur.contracts||[]),newContract]}
+      const newContract={id:'c'+Date.now(),product:selProd,regType:form.regType,payMethod:form.payMethod,start:sd,actual,staff:form.staff,expire:expireDate,count:countVal}
+      const nm={...cur,name:form.name||cur.name,phone:form.phone||cur.phone,birth:form.birth,gender:form.gender,trainer:form.trainer,goal:form.goal,product:selProd,regType:form.regType,payMethod:form.payMethod,start:sd,actual,staff:form.staff,expire:expireDate,count:countVal,contracts:[...(cur.contracts||[]),newContract]}
       setMembers(ms=>ms.map(m=>m.id===cur.id?nm:m))
       notifyNewMember(nm.name,nm.trainer,form.regType)
       setRenewMode(false); setView('preview'); setCur(nm)
@@ -46,21 +63,21 @@ export default function PTContract({role, myTrainer}) {
     if(cur&&editContractId){
       const curContracts=contractsOf(cur)
       const isLatest=curContracts[curContracts.length-1].id===editContractId
-      const contracts=curContracts.map(c=>c.id===editContractId?{...c,product:selProd,regType:form.regType,payMethod:form.payMethod,start:sd,actual,staff:form.staff}:c)
-      const nm={...cur,name:form.name||cur.name,phone:form.phone||cur.phone,birth:form.birth,gender:form.gender,trainer:form.trainer,goal:form.goal,contracts,...(isLatest?{product:selProd,regType:form.regType,payMethod:form.payMethod,start:sd,actual,staff:form.staff}:{})}
+      const contracts=curContracts.map(c=>c.id===editContractId?{...c,product:selProd,regType:form.regType,payMethod:form.payMethod,start:sd,actual,staff:form.staff,expire:expireDate,count:countVal}:c)
+      const nm={...cur,name:form.name||cur.name,phone:form.phone||cur.phone,birth:form.birth,gender:form.gender,trainer:form.trainer,goal:form.goal,contracts,...(isLatest?{product:selProd,regType:form.regType,payMethod:form.payMethod,start:sd,actual,staff:form.staff,expire:expireDate,count:countVal}:{})}
       setMembers(ms=>ms.map(m=>m.id===cur.id?nm:m))
       setEditContractId(null); setView('preview'); setCur(nm)
       return
     }
-    const newContract={id:'c'+Date.now(),product:selProd,regType:form.regType,payMethod:form.payMethod,start:sd,actual,staff:form.staff}
-    const nm={id:Date.now(),name:form.name||'홍길동',phone:form.phone||'010-0000-0000',birth:form.birth,gender:form.gender,trainer:form.trainer,goal:form.goal,product:selProd,regType:form.regType,payMethod:form.payMethod,start:sd,actual,staff:form.staff,contracts:[newContract],token:genToken()}
+    const newContract={id:'c'+Date.now(),product:selProd,regType:form.regType,payMethod:form.payMethod,start:sd,actual,staff:form.staff,expire:expireDate,count:countVal}
+    const nm={id:Date.now(),name:form.name||'홍길동',phone:form.phone||'010-0000-0000',birth:form.birth,gender:form.gender,trainer:form.trainer,goal:form.goal,product:selProd,regType:form.regType,payMethod:form.payMethod,start:sd,actual,staff:form.staff,expire:expireDate,count:countVal,contracts:[newContract],token:genToken()}
     setMembers(ms=>[...ms,nm])
     notifyNewMember(nm.name,nm.trainer,form.regType)
     setView('preview'); setCur(nm)
   }
   const openKk=(type)=>{
     if(!cur)return
-    const expire=addWeeks(cur.start,cur.product.weeks)
+    const expire=cur.expire?new Date(cur.expire):addWeeks(cur.start,cur.product.weeks)
     let msg=''
     if(type==='contract'||type==='both'){
       msg+=`[🏋️ 나우짐 PT 이용 계약서]\n\n안녕하세요 ${cur.name}님!\n나우짐에 등록해 주셔서 감사합니다 😊\n\n──────────────────\n🏋️ 담당: ${cur.trainer} 트레이너\n📋 ${cur.product.name} (${cur.product.weeks}주 과정)\n📅 ${fmtDate(cur.start)} ~ ${fmtDate(expire)}\n💳 ${cur.payMethod} · ${cur.regType}\n💰 결제: ${fmt(cur.actual)}${cur.actual<cur.product.price?' ('+fmt(cur.product.price-cur.actual)+' 할인)':''}\n──────────────────\n\n회원님의 건강한 라이프 스타일을 응원할게요!💪🏻\n나우짐 📞 053-965-0513`
@@ -115,7 +132,7 @@ export default function PTContract({role, myTrainer}) {
           {visibleMembers.length===0&&<div className="empty-state">{searchQ?'검색 결과가 없어요.':'등록된 회원이 없어요.'}</div>}
           <div className="grid-2">
             {visibleMembers.map(m=>{
-              const expire=addWeeks(m.start,m.product.weeks)
+              const expire=m.expire?new Date(m.expire):addWeeks(m.start,m.product.weeks)
               const avC=['av0','av1','av2','av3'][trI.indexOf(m.trainer)]||'av3'
               return (
                 <div key={m.id} className="card" style={{cursor:'pointer'}} onClick={()=>{setCur(m);setView('preview')}}>
@@ -155,7 +172,7 @@ export default function PTContract({role, myTrainer}) {
               <div style={{fontWeight:500,marginBottom:12}}>결제 정보</div>
               <div className="rrow"><span className="rl">등록 구분</span><select value={form.regType} onChange={e=>setForm(f=>({...f,regType:e.target.value}))} style={{border:'none',background:'transparent',fontSize:13}}><option value="신규">신규</option><option value="재등록">재등록</option></select></div>
               <div className="rrow"><span className="rl">결제 방법</span><select value={form.payMethod} onChange={e=>setForm(f=>({...f,payMethod:e.target.value}))} style={{border:'none',background:'transparent',fontSize:13}}><option>카드</option><option>계좌이체</option><option>현금</option><option>키오스크</option></select></div>
-              <div className="rrow"><span className="rl">시작일</span><input type="date" value={form.start} onChange={e=>setForm(f=>({...f,start:e.target.value}))} style={{border:'none',background:'transparent',fontSize:13}}/></div>
+              <div className="rrow"><span className="rl">시작일</span><input type="date" value={form.start} onChange={e=>{const start=e.target.value;setForm(f=>({...f,start,...defaultsFor(start,selProd)}))}} style={{border:'none',background:'transparent',fontSize:13}}/></div>
               <div className="rrow"><span className="rl">실결제액</span><input type="number" value={form.actual} onChange={e=>setForm(f=>({...f,actual:e.target.value}))} placeholder={selProd.price} style={{border:'none',background:'transparent',textAlign:'right',fontSize:13,outline:'none'}}/></div>
             </div>
           </div>
@@ -164,7 +181,7 @@ export default function PTContract({role, myTrainer}) {
               <div style={{fontWeight:500,marginBottom:12}}>PT 상품 선택</div>
               <div style={{display:'grid',gridTemplateColumns:'repeat(2,1fr)',gap:8}}>
                 {products.map(p=>(
-                  <button key={p.id} style={{border:'1.5px solid '+(form.productId===p.id?'var(--green)':'var(--border)'),borderRadius:10,padding:'10px 8px',background:form.productId===p.id?'var(--green-light)':'transparent',cursor:'pointer',textAlign:'left'}} onClick={()=>{setForm(f=>({...f,productId:p.id,actual:''}))}}>
+                  <button key={p.id} style={{border:'1.5px solid '+(form.productId===p.id?'var(--green)':'var(--border)'),borderRadius:10,padding:'10px 8px',background:form.productId===p.id?'var(--green-light)':'transparent',cursor:'pointer',textAlign:'left'}} onClick={()=>{setForm(f=>({...f,productId:p.id,actual:'',...defaultsFor(f.start,p)}))}}>
                     <span style={{fontSize:10,padding:'2px 7px',borderRadius:8,background:p.type==='half'?'#FBEAF0':'#E6F1FB',color:p.type==='half'?'#712B13':'#042C53',display:'inline-block',marginBottom:4}}>{p.type==='half'?'하프 30분':'일반 50분'}</span>
                     <div style={{fontSize:13,fontWeight:500,marginBottom:2}}>{p.name}</div>
                     <div style={{fontSize:11,color:'var(--text3)',marginBottom:4}}>{p.weeks}주 과정</div>
@@ -172,6 +189,9 @@ export default function PTContract({role, myTrainer}) {
                   </button>
                 ))}
               </div>
+              <div style={{fontSize:11,color:'var(--text3)',margin:'12px 0 6px'}}>필요하면 아래 값을 직접 조정할 수 있어요 (기본값: 선택 상품 기준 자동 계산)</div>
+              <div className="rrow"><span className="rl">만료일</span><input type="date" value={form.expire} onChange={e=>setForm(f=>({...f,expire:e.target.value}))} style={{border:'none',background:'transparent',fontSize:13}}/></div>
+              <div className="rrow"><span className="rl">PT 남은 횟수</span><input type="number" value={form.count} onChange={e=>setForm(f=>({...f,count:e.target.value}))} style={{border:'none',background:'transparent',textAlign:'right',fontSize:13,outline:'none'}}/></div>
             </div>
             <div style={{display:'flex',gap:8}}>
               <button className="btn btn-outline" style={{flex:1}} onClick={()=>{setRenewMode(false);setEditContractId(null);setView(cur?'preview':'list')}}>취소</button>
@@ -193,7 +213,7 @@ export default function PTContract({role, myTrainer}) {
                 <div className="rrow"><span className="rl">담당 트레이너</span><span className="rv">{cur.trainer}</span></div>
               </div>
               {(()=>{const curContracts=contractsOf(cur);const latestId=curContracts[curContracts.length-1].id;return curContracts.slice().reverse().map(c=>{
-                const expire=addWeeks(c.start,c.product.weeks)
+                const expire=c.expire?new Date(c.expire):addWeeks(c.start,c.product.weeks)
                 const isLatest=c.id===latestId
                 return (
                   <div key={c.id} className="card" style={{padding:0,overflow:'hidden',marginBottom:12}}>
@@ -208,7 +228,8 @@ export default function PTContract({role, myTrainer}) {
                     </div>
                     <div style={{padding:'14px 16px'}}>
                       <div className="rrow"><span className="rl">PT 종류</span><span className="rv">{c.product.type==='half'?'하프PT (30분)':'일반PT (50분)'}</span></div>
-                      <div className="rrow"><span className="rl">총 횟수</span><span className="rv">{c.product.count}회 ({c.product.weeks}주)</span></div>
+                      <div className="rrow"><span className="rl">상품 기준 기간</span><span className="rv">{c.product.weeks}주</span></div>
+                      <div className="rrow"><span className="rl">PT 남은 횟수</span><span className="rv">{c.count??c.product.count}회</span></div>
                       <div className="rrow"><span className="rl">시작일</span><span className="rv">{fmtDate(c.start)}</span></div>
                       <div className="rrow"><span className="rl">만료일</span><span className="rv">{fmtDate(expire)}</span></div>
                       <div className="rrow"><span className="rl">등록 구분</span><span className="rv">{c.regType}</span></div>

@@ -26,7 +26,7 @@ export default function Home({role, myTrainer, onNavigate, onOpenTodayTask}) {
   const mySalary = calcTrainerSalaryForMonth(myTrainer, curKey, {salaryPolicies, holRecs, monthSales: MONTH_SALES})
 
   const [members] = useSyncedState('nowgym-pt-members', PT_MEMBERS_INIT)
-  const myActiveMembers = members.filter(m => m.trainer===myTrainer && TODAY <= addWeeks(m.start, m.product.weeks)).length
+  const myActiveMembers = members.filter(m => m.trainer===myTrainer && TODAY <= (m.expire ? new Date(m.expire) : addWeeks(m.start, m.product.weeks))).length
 
   const [ptData] = useSyncedState('nowgym-pt-schedule', PT_DATA)
   const todayKey = `${TODAY.getFullYear()}-${TODAY.getMonth()+1}-${TODAY.getDate()}`
