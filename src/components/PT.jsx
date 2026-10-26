@@ -53,11 +53,13 @@ export default function PT({role, myTrainer, onOpenDiary}) {
     return {mHalf, mFull}
   })()
 
-  // 이 회원의 전체 예약을 날짜·시간 순으로 정렬했을 때 몇 번째 회차인지 계산 (아직 등록되지 않은 슬롯도 가정해서 계산 가능)
+  // 이 회원의 "현재 계약(가장 최근 등록/재등록)" 시작일 이후 예약만 날짜·시간 순으로 정렬했을 때 몇 번째 회차인지 계산합니다.
+  // (재등록 이전 계약에서 이미 소진한 예약까지 합산하면, 재등록 직후에 횟수를 다 썼다고 잘못 막히기 때문에 시작일로 구간을 나눕니다.)
   const computeSessionNumber = (memberName, dateKey, hour) => {
     const mem = members.find(x=>x.name===memberName && x.trainer===effectiveTrainer)
     if (!mem) return null
-    const existingSlots = pts.filter(p=>p.m===memberName)
+    const memberStart = mem.start instanceof Date ? mem.start : new Date(mem.start)
+    const existingSlots = pts.filter(p=>p.m===memberName && dateKeyToDate(p.dateKey)>=memberStart)
     const already = existingSlots.some(s=>s.dateKey===dateKey && s.hour===hour)
     const slots = (already ? existingSlots : existingSlots.concat([{dateKey,hour}])).slice().sort((a,b)=>{
       const da=dateKeyToDate(a.dateKey), db=dateKeyToDate(b.dateKey)
