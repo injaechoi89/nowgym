@@ -57,18 +57,24 @@ export default function PT({role, myTrainer, onOpenDiary}) {
   // "이 예약이 어느 계약 소속인지"를 날짜 비교가 아니라 이 id로 정확히 구분할 수 있습니다.
   const currentContractIdOf = mem => (mem.contracts && mem.contracts.length) ? mem.contracts[mem.contracts.length-1].id : null
 
-  // 이 회원의 현재 계약에 속하는 예약만 날짜·시간 순으로 정렬했을 때 몇 번째 회차인지 계산합니다.
-  // contractId가 저장된 예약은 그 값으로 정확히 계약을 구분하고(재등록 전에 미리 잡아둔 미래 예약도 안전하게 구분됨),
-  // 예전에 contractId 없이 저장된 예약은 계약 시작일 이후 날짜인지로 대략 구분합니다(완벽하진 않지만 기존 동작 유지).
+  // 이 회원의 "대상 계약"에 속하는 예약만 날짜·시간 순으로 정렬했을 때 몇 번째 회차인지 계산합니다.
+  // 대상 계약은 기본적으로 회원의 현재(최신) 계약이지만, 이미 등록된 예약을 표시할 때는 그 예약 자신에
+  // 저장된 contractId를 targetContractId로 넘겨서 "그 예약이 실제로 속한 계약" 기준으로 계산합니다.
+  // (재등록 전에 미리 잡아둔 미래 예약은 옛 계약 id로 태그돼 있으므로, 이렇게 해야 현재 계약 번호에 끼어들지 않습니다.)
+  // contractId가 없는 예전 예약은 계약 시작일 이후 날짜인지로 대략 구분합니다(완벽하진 않지만 기존 동작 유지).
   // extraPts: 아직 ptData에는 저장되지 않았지만 같은 작업(예: 지난주 복사) 중에 추가하기로 확정된 예약들 — 한 번에 여러 건을 복사할 때도 횟수를 정확히 세기 위함.
-  const computeSessionNumber = (memberName, dateKey, hour, extraPts=[]) => {
+  const computeSessionNumber = (memberName, dateKey, hour, extraPts=[], targetContractId) => {
     const mem = members.find(x=>x.name===memberName && x.trainer===effectiveTrainer)
     if (!mem) return null
-    const currentContractId = currentContractIdOf(mem)
-    const memberStart = mem.start instanceof Date ? mem.start : new Date(mem.start)
+    const contractId = targetContractId ?? currentContractIdOf(mem)
+    const targetContract = (mem.contracts||[]).find(c=>c.id===contractId)
+    const total = targetContract ? (targetContract.count ?? targetContract.product.count) : (mem.count ?? mem.product.count)
+    const rawStart = targetContract ? targetContract.start : mem.start
+    const memberStart = rawStart instanceof Date ? rawStart : new Date(rawStart)
     const existingSlots = pts.concat(extraPts).filter(p=>{
       if (p.m!==memberName) return false
-      if (currentContractId && p.contractId) return p.contractId===currentContractId
+      if (contractId && p.contractId) return p.contractId===contractId
+      if (p.contractId) return false // 다른 계약으로 명시 태그된 예약은 제외
       return dateKeyToDate(p.dateKey)>=memberStart
     })
     const already = existingSlots.some(s=>s.dateKey===dateKey && s.hour===hour)
@@ -77,11 +83,11 @@ export default function PT({role, myTrainer, onOpenDiary}) {
       return da-db || a.hour.localeCompare(b.hour)
     })
     const pos = slots.findIndex(s=>s.dateKey===dateKey && s.hour===hour) + 1
-    return {n: pos, total: mem.count ?? mem.product.count}
+    return {n: pos, total}
   }
 
   const sessionCount = (booking) => {
-    const sc = computeSessionNumber(booking.m, booking.dateKey, booking.hour)
+    const sc = computeSessionNumber(booking.m, booking.dateKey, booking.hour, [], booking.contractId)
     if (!sc) return null
     return {n: Math.min(sc.n, sc.total), total: sc.total}
   }
