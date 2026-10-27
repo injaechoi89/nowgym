@@ -31,7 +31,17 @@ export default function PT({role, myTrainer, onOpenDiary}) {
   const pts = (ptData[effectiveTrainer]||[]).filter(p=>typeof p.dateKey==='string')
   const myMembers = members.filter(m=>m.trainer===effectiveTrainer).sort((a,b)=>a.name.localeCompare(b.name,'ko'))
   const selectedMember = myMembers.find(m=>m.name===form.m)
-  const allowedType = selectedMember ? selectedMember.product.type : null
+  // 회원이 하프PT·일반PT 계약을 둘 다 가지고 있으면(예: 재등록하면서 종목을 바꾸지 않고 추가로 등록) 둘 다 선택 가능해야 합니다.
+  const latestContractOfType = (mem, type) => {
+    const list = mem.contracts || []
+    for (let i=list.length-1;i>=0;i--) if (list[i].product.type===type) return list[i]
+    return null
+  }
+  const contractIdForType = (mem, type) => latestContractOfType(mem, type)?.id ?? currentContractIdOf(mem)
+  const allowedTypes = selectedMember ? {
+    half: !!latestContractOfType(selectedMember,'half'),
+    full: !!latestContractOfType(selectedMember,'full'),
+  } : {half:true, full:true}
   const lookup = {}
   pts.forEach(p=>{if(!lookup[p.dateKey])lookup[p.dateKey]={};lookup[p.dateKey][p.hour]=p})
   const getMonday = (off) => {
@@ -126,17 +136,17 @@ export default function PT({role, myTrainer, onOpenDiary}) {
       if (nextBooking) { alert(`${next}에 이미 다른 예약이 있어서 일반PT를 등록할 수 없어요.`); return }
     }
     const memberName = form.m.trim()
+    const mem = members.find(x=>x.name===memberName && x.trainer===effectiveTrainer)
+    const contractId = mem ? contractIdForType(mem, form.type) : null
     const existing = lookup[modal.dateKey] && lookup[modal.dateKey][modal.hour]
     const isNewAllocation = !(existing && existing.m===memberName)
     if (isNewAllocation) {
-      const sc = computeSessionNumber(memberName, modal.dateKey, modal.hour)
+      const sc = computeSessionNumber(memberName, modal.dateKey, modal.hour, [], contractId)
       if (sc && sc.n > sc.total) {
         alert(`${memberName}님은 등록한 PT ${sc.total}회를 이미 모두 사용해서 더 등록할 수 없어요.`)
         return
       }
     }
-    const mem = members.find(x=>x.name===memberName && x.trainer===effectiveTrainer)
-    const contractId = mem ? currentContractIdOf(mem) : null
     setPtData(pd => {
       const list = (pd[effectiveTrainer]||[]).filter(p => !(p.dateKey===modal.dateKey && p.hour===modal.hour))
       list.push({dateKey: modal.dateKey, hour: modal.hour, type: form.type, m: memberName, contractId})
@@ -170,10 +180,10 @@ export default function PT({role, myTrainer, onOpenDiary}) {
         const idx = prevKeys.indexOf(p.dateKey)
         const newDateKey = curKeys[idx]
         if (list.some(x=>x.dateKey===newDateKey && x.hour===p.hour)) return
-        const sc = computeSessionNumber(p.m, newDateKey, p.hour, extraPts)
-        if (sc && sc.n > sc.total) { skippedNames.add(p.m); return }
         const mem = members.find(x=>x.name===p.m && x.trainer===effectiveTrainer)
-        const contractId = mem ? currentContractIdOf(mem) : null
+        const contractId = mem ? contractIdForType(mem, p.type) : null
+        const sc = computeSessionNumber(p.m, newDateKey, p.hour, extraPts, contractId)
+        if (sc && sc.n > sc.total) { skippedNames.add(p.m); return }
         list.push({dateKey:newDateKey, hour:p.hour, type:p.type, m:p.m, contractId})
         extraPts.push({dateKey:newDateKey, hour:p.hour, type:p.type, m:p.m, contractId})
       })
@@ -311,10 +321,10 @@ export default function PT({role, myTrainer, onOpenDiary}) {
               )}
             </div>
             <div style={{marginBottom:4}}>
-              <label style={{fontSize:12,color:'var(--text3)',display:'block',marginBottom:6}}>PT 종류{allowedType&&<span style={{color:'var(--text3)',fontWeight:400}}> · {selectedMember.name}님 가입 종목만 선택 가능</span>}</label>
+              <label style={{fontSize:12,color:'var(--text3)',display:'block',marginBottom:6}}>PT 종류{selectedMember&&<span style={{color:'var(--text3)',fontWeight:400}}> · {selectedMember.name}님 가입 종목만 선택 가능</span>}</label>
               <div style={{display:'flex',gap:8}}>
-                {(()=>{const halfDisabled=allowedType&&allowedType!=='half';return <button disabled={halfDisabled} style={{flex:1,padding:'8px 4px',border:'1.5px solid '+(form.type==='half'?'#D4537E':'var(--border)'),borderRadius:'var(--radius)',background:form.type==='half'?'#FBEAF0':'transparent',color:halfDisabled?'var(--text3)':form.type==='half'?'#712B13':'var(--text2)',opacity:halfDisabled?0.4:1,cursor:halfDisabled?'not-allowed':'pointer',fontSize:12,fontWeight:500}} onClick={()=>!halfDisabled&&setForm(f=>({...f,type:'half'}))}>하프PT (30분)</button>})()}
-                {(()=>{const fullDisabled=allowedType&&allowedType!=='full';return <button disabled={fullDisabled} style={{flex:1,padding:'8px 4px',border:'1.5px solid '+(form.type==='full'?'#378ADD':'var(--border)'),borderRadius:'var(--radius)',background:form.type==='full'?'#E6F1FB':'transparent',color:fullDisabled?'var(--text3)':form.type==='full'?'#042C53':'var(--text2)',opacity:fullDisabled?0.4:1,cursor:fullDisabled?'not-allowed':'pointer',fontSize:12,fontWeight:500}} onClick={()=>!fullDisabled&&setForm(f=>({...f,type:'full'}))}>일반PT (50분, 2칸)</button>})()}
+                {(()=>{const halfDisabled=!allowedTypes.half;return <button disabled={halfDisabled} style={{flex:1,padding:'8px 4px',border:'1.5px solid '+(form.type==='half'?'#D4537E':'var(--border)'),borderRadius:'var(--radius)',background:form.type==='half'?'#FBEAF0':'transparent',color:halfDisabled?'var(--text3)':form.type==='half'?'#712B13':'var(--text2)',opacity:halfDisabled?0.4:1,cursor:halfDisabled?'not-allowed':'pointer',fontSize:12,fontWeight:500}} onClick={()=>!halfDisabled&&setForm(f=>({...f,type:'half'}))}>하프PT (30분)</button>})()}
+                {(()=>{const fullDisabled=!allowedTypes.full;return <button disabled={fullDisabled} style={{flex:1,padding:'8px 4px',border:'1.5px solid '+(form.type==='full'?'#378ADD':'var(--border)'),borderRadius:'var(--radius)',background:form.type==='full'?'#E6F1FB':'transparent',color:fullDisabled?'var(--text3)':form.type==='full'?'#042C53':'var(--text2)',opacity:fullDisabled?0.4:1,cursor:fullDisabled?'not-allowed':'pointer',fontSize:12,fontWeight:500}} onClick={()=>!fullDisabled&&setForm(f=>({...f,type:'full'}))}>일반PT (50분, 2칸)</button>})()}
               </div>
             </div>
             {modal.existing&&onOpenDiary&&(
