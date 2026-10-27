@@ -53,14 +53,24 @@ export default function PT({role, myTrainer, onOpenDiary}) {
     return {mHalf, mFull}
   })()
 
-  // 이 회원의 "현재 계약(가장 최근 등록/재등록)" 시작일 이후 예약만 날짜·시간 순으로 정렬했을 때 몇 번째 회차인지 계산합니다.
-  // (재등록 이전 계약에서 이미 소진한 예약까지 합산하면, 재등록 직후에 횟수를 다 썼다고 잘못 막히기 때문에 시작일로 구간을 나눕니다.)
+  // 회원의 현재(가장 최근) 계약 id. 새로 등록하는 예약에 이 id를 함께 저장해두면, 재등록 이후에도
+  // "이 예약이 어느 계약 소속인지"를 날짜 비교가 아니라 이 id로 정확히 구분할 수 있습니다.
+  const currentContractIdOf = mem => (mem.contracts && mem.contracts.length) ? mem.contracts[mem.contracts.length-1].id : null
+
+  // 이 회원의 현재 계약에 속하는 예약만 날짜·시간 순으로 정렬했을 때 몇 번째 회차인지 계산합니다.
+  // contractId가 저장된 예약은 그 값으로 정확히 계약을 구분하고(재등록 전에 미리 잡아둔 미래 예약도 안전하게 구분됨),
+  // 예전에 contractId 없이 저장된 예약은 계약 시작일 이후 날짜인지로 대략 구분합니다(완벽하진 않지만 기존 동작 유지).
   // extraPts: 아직 ptData에는 저장되지 않았지만 같은 작업(예: 지난주 복사) 중에 추가하기로 확정된 예약들 — 한 번에 여러 건을 복사할 때도 횟수를 정확히 세기 위함.
   const computeSessionNumber = (memberName, dateKey, hour, extraPts=[]) => {
     const mem = members.find(x=>x.name===memberName && x.trainer===effectiveTrainer)
     if (!mem) return null
+    const currentContractId = currentContractIdOf(mem)
     const memberStart = mem.start instanceof Date ? mem.start : new Date(mem.start)
-    const existingSlots = pts.concat(extraPts).filter(p=>p.m===memberName && dateKeyToDate(p.dateKey)>=memberStart)
+    const existingSlots = pts.concat(extraPts).filter(p=>{
+      if (p.m!==memberName) return false
+      if (currentContractId && p.contractId) return p.contractId===currentContractId
+      return dateKeyToDate(p.dateKey)>=memberStart
+    })
     const already = existingSlots.some(s=>s.dateKey===dateKey && s.hour===hour)
     const slots = (already ? existingSlots : existingSlots.concat([{dateKey,hour}])).slice().sort((a,b)=>{
       const da=dateKeyToDate(a.dateKey), db=dateKeyToDate(b.dateKey)
@@ -119,9 +129,11 @@ export default function PT({role, myTrainer, onOpenDiary}) {
         return
       }
     }
+    const mem = members.find(x=>x.name===memberName && x.trainer===effectiveTrainer)
+    const contractId = mem ? currentContractIdOf(mem) : null
     setPtData(pd => {
       const list = (pd[effectiveTrainer]||[]).filter(p => !(p.dateKey===modal.dateKey && p.hour===modal.hour))
-      list.push({dateKey: modal.dateKey, hour: modal.hour, type: form.type, m: memberName})
+      list.push({dateKey: modal.dateKey, hour: modal.hour, type: form.type, m: memberName, contractId})
       return {...pd, [effectiveTrainer]: list}
     })
     setModal(null)
@@ -154,8 +166,10 @@ export default function PT({role, myTrainer, onOpenDiary}) {
         if (list.some(x=>x.dateKey===newDateKey && x.hour===p.hour)) return
         const sc = computeSessionNumber(p.m, newDateKey, p.hour, extraPts)
         if (sc && sc.n > sc.total) { skippedNames.add(p.m); return }
-        list.push({dateKey:newDateKey, hour:p.hour, type:p.type, m:p.m})
-        extraPts.push({dateKey:newDateKey, hour:p.hour, type:p.type, m:p.m})
+        const mem = members.find(x=>x.name===p.m && x.trainer===effectiveTrainer)
+        const contractId = mem ? currentContractIdOf(mem) : null
+        list.push({dateKey:newDateKey, hour:p.hour, type:p.type, m:p.m, contractId})
+        extraPts.push({dateKey:newDateKey, hour:p.hour, type:p.type, m:p.m, contractId})
       })
       return {...pd, [effectiveTrainer]: list}
     })
