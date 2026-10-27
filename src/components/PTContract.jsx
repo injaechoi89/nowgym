@@ -1,9 +1,10 @@
 import {useState, useEffect} from 'react'
 import {useSyncedState} from '../useSyncedState.js'
-import {TODAY,TRAINERS,PRODUCTS_INIT,PT_MEMBERS_INIT,WD,fmt,fmtDate,toDateInput,addWeeks,genToken} from '../data.js'
+import {TODAY,TRAINERS,PRODUCTS_INIT,PT_MEMBERS_INIT,PT_DATA,WD,fmt,fmtDate,toDateInput,addWeeks,genToken} from '../data.js'
 export default function PTContract({role, myTrainer}) {
   const isOwner = role==='원장님'
   const [members,setMembers]=useSyncedState('nowgym-pt-members', PT_MEMBERS_INIT)
+  const [, setPtData]=useSyncedState('nowgym-pt-schedule', PT_DATA)
   useEffect(()=>{
     if(members.some(m=>!m.token)) setMembers(list=>list.map(m=>m.token?m:{...m,token:genToken()}))
   }, [members])
@@ -53,9 +54,21 @@ export default function PTContract({role, myTrainer}) {
     const ep=form.expire.split('-'); const expireDate=new Date(+ep[0],+ep[1]-1,+ep[2])
     const countVal=parseInt(form.count)||selProd.count
     if(cur&&renewMode){
+      // 재등록 시점에 이 회원의 스케줄에 이미 잡혀있는 모든 예약(시작일/종료일과 무관하게)은
+      // 전부 "이전 계약"으로 확정 처리합니다. 선생님들이 재등록할 때 시작일을 정확히 챙기지
+      // 않는 경우가 많은데, 실제 수업은 순차적으로 진행되므로 이전 회차가 전부 끝난 뒤에만
+      // 새 회차가 시작되도록 하기 위함입니다 — 이후 새로 잡는 예약부터 새 계약으로 집계됩니다.
+      const prevContractId = (cur.contracts && cur.contracts.length) ? cur.contracts[cur.contracts.length-1].id : null
       const newContract={id:'c'+Date.now(),product:selProd,regType:form.regType,payMethod:form.payMethod,start:sd,actual,staff:form.staff,expire:expireDate,count:countVal}
       const nm={...cur,name:form.name||cur.name,phone:form.phone||cur.phone,birth:form.birth,gender:form.gender,trainer:form.trainer,goal:form.goal,product:selProd,regType:form.regType,payMethod:form.payMethod,start:sd,actual,staff:form.staff,expire:expireDate,count:countVal,contracts:[...(cur.contracts||[]),newContract]}
       setMembers(ms=>ms.map(m=>m.id===cur.id?nm:m))
+      if(prevContractId){
+        setPtData(pd=>{
+          const list=pd[cur.trainer]||[]
+          const updated=list.map(p=>(p.m===cur.name && !p.contractId) ? {...p,contractId:prevContractId} : p)
+          return {...pd,[cur.trainer]:updated}
+        })
+      }
       notifyNewMember(nm.name,nm.trainer,form.regType)
       setRenewMode(false); setView('preview'); setCur(nm)
       return
