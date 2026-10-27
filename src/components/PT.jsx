@@ -55,11 +55,12 @@ export default function PT({role, myTrainer, onOpenDiary}) {
 
   // 이 회원의 "현재 계약(가장 최근 등록/재등록)" 시작일 이후 예약만 날짜·시간 순으로 정렬했을 때 몇 번째 회차인지 계산합니다.
   // (재등록 이전 계약에서 이미 소진한 예약까지 합산하면, 재등록 직후에 횟수를 다 썼다고 잘못 막히기 때문에 시작일로 구간을 나눕니다.)
-  const computeSessionNumber = (memberName, dateKey, hour) => {
+  // extraPts: 아직 ptData에는 저장되지 않았지만 같은 작업(예: 지난주 복사) 중에 추가하기로 확정된 예약들 — 한 번에 여러 건을 복사할 때도 횟수를 정확히 세기 위함.
+  const computeSessionNumber = (memberName, dateKey, hour, extraPts=[]) => {
     const mem = members.find(x=>x.name===memberName && x.trainer===effectiveTrainer)
     if (!mem) return null
     const memberStart = mem.start instanceof Date ? mem.start : new Date(mem.start)
-    const existingSlots = pts.filter(p=>p.m===memberName && dateKeyToDate(p.dateKey)>=memberStart)
+    const existingSlots = pts.concat(extraPts).filter(p=>p.m===memberName && dateKeyToDate(p.dateKey)>=memberStart)
     const already = existingSlots.some(s=>s.dateKey===dateKey && s.hour===hour)
     const slots = (already ? existingSlots : existingSlots.concat([{dateKey,hour}])).slice().sort((a,b)=>{
       const da=dateKeyToDate(a.dateKey), db=dateKeyToDate(b.dateKey)
@@ -138,18 +139,29 @@ export default function PT({role, myTrainer, onOpenDiary}) {
     const curKeys = Array.from({length:7},(_,i)=>{const d=new Date(mon); d.setDate(d.getDate()+i); return toKey(d)})
     const prevBookings = pts.filter(p=>prevKeys.includes(p.dateKey))
     if (!prevBookings.length) { alert(`${prevMon.getMonth()+1}월 ${prevMon.getDate()}일 – ${prevSun.getMonth()+1}월 ${prevSun.getDate()}일 주에는 예약이 없어요.`); return }
-    if (!window.confirm(`${prevMon.getMonth()+1}월 ${prevMon.getDate()}일 주 예약 ${prevBookings.length}건을 이번에 보는 주로 복사할까요? 이미 등록된 시간대는 그대로 두고 빈 칸만 채워요.`)) return
+    if (!window.confirm(`${prevMon.getMonth()+1}월 ${prevMon.getDate()}일 주 예약 ${prevBookings.length}건을 이번에 보는 주로 복사할까요? 이미 등록된 시간대는 그대로 두고 빈 칸만 채워요. 등록한 PT 횟수를 이미 다 쓴 회원은 복사되지 않아요.`)) return
+    const skippedNames = new Set()
+    const sortedBookings = prevBookings.slice().sort((a,b)=>{
+      const da=dateKeyToDate(a.dateKey), db=dateKeyToDate(b.dateKey)
+      return da-db || a.hour.localeCompare(b.hour)
+    })
     setPtData(pd => {
       const list = [...(pd[effectiveTrainer]||[])]
-      prevBookings.forEach(p => {
+      const extraPts = []
+      sortedBookings.forEach(p => {
         const idx = prevKeys.indexOf(p.dateKey)
         const newDateKey = curKeys[idx]
-        if (!list.some(x=>x.dateKey===newDateKey && x.hour===p.hour)) {
-          list.push({dateKey:newDateKey, hour:p.hour, type:p.type, m:p.m})
-        }
+        if (list.some(x=>x.dateKey===newDateKey && x.hour===p.hour)) return
+        const sc = computeSessionNumber(p.m, newDateKey, p.hour, extraPts)
+        if (sc && sc.n > sc.total) { skippedNames.add(p.m); return }
+        list.push({dateKey:newDateKey, hour:p.hour, type:p.type, m:p.m})
+        extraPts.push({dateKey:newDateKey, hour:p.hour, type:p.type, m:p.m})
       })
       return {...pd, [effectiveTrainer]: list}
     })
+    if (skippedNames.size) {
+      alert(`${[...skippedNames].join(', ')}님은 등록한 PT 횟수를 이미 모두 사용해서 복사되지 않았어요. 재등록 후 다시 시도해주세요.`)
+    }
   }
 
   const resetAllSchedules = () => {
